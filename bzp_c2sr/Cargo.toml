@@ -1,0 +1,15 @@
+[package]
+name = "bzp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name         = "bzp"
+crate-type   = ["rlib", "cdylib"]
+
+[profile.dev]
+overflow-checks = false
+opt-level = 3
+
+[dependencies]
+libc = "0.2.155"
