@@ -220,7 +220,7 @@ macro_rules! md5_i_proc {
 pub(crate) use md5_i_proc;
 
 
-pub fn md5_calc_digest_of_buff(context: &mut Box<Md5Ctx>) {
+pub fn vos_md5_calc_digest_of_buff(context: &mut Box<Md5Ctx>) {
     let mut i: u32;
     let mut tmp_value: u32;
     let mut text_fragment: [u32; 16] = [0; 16];
@@ -255,7 +255,7 @@ pub fn md5_calc_digest_of_buff(context: &mut Box<Md5Ctx>) {
     context.aul_state[3] += tmp_state[3];
 }
 
-pub fn md5_pad_buff(context: &mut Box<Md5Ctx>) -> bool {
+pub fn vos_md5_pad_buff(context: &mut Box<Md5Ctx>) -> bool {
     let need_another_buff = context.ui_pos >= md5_text_in_buffer_max!();
 
     context.auc_buffer[context.ui_pos as usize] = 0x80;
@@ -276,7 +276,7 @@ pub fn md5_pad_buff(context: &mut Box<Md5Ctx>) -> bool {
     need_another_buff
 }
 
-pub fn md5_init(context: &mut Box<Md5Ctx>) {
+pub fn vos_md5_init(context: &mut Box<Md5Ctx>) {
     *context = Box::new(Md5Ctx::new());
     context.aul_state[0] = 0x67452301;
     context.aul_state[1] = 0xefcdab89;
@@ -284,14 +284,14 @@ pub fn md5_init(context: &mut Box<Md5Ctx>) {
     context.aul_state[3] = 0x10325476;
 }
 
-pub fn md5_update(context: &mut Box<Md5Ctx>, input: &[u8], input_len: u32) {
+pub fn vos_md5_update(context: &mut Box<Md5Ctx>, input: &mut [u8], input_len: u32) {
     let mut total_input_bits: u64;
     let mut input_index: u32 = 0;
     let mut input_bit: u64;
     let mut tmp_pos: u32;
     let mut context_buffer: &mut [u8];
 
-    if (input.is_empty() && input_len != 0) {
+    if input.is_empty() && input_len != 0 {
         return;
     }
 
@@ -313,27 +313,27 @@ pub fn md5_update(context: &mut Box<Md5Ctx>, input: &[u8], input_len: u32) {
             tmp_pos += 1;
             continue;
         }
-        md5_calc_digest_of_buff(context);
+        vos_md5_calc_digest_of_buff(context);
         tmp_pos = 0;
     }
     
     if tmp_pos == md5_buffer_size!() {
-        md5_calc_digest_of_buff(context);
+        vos_md5_calc_digest_of_buff(context);
         tmp_pos = 0;
     }
     context.ui_pos = tmp_pos;
     return;
 }
 
-pub fn md5_final_ex(digest: &mut [u8], buf_len: u32, context: &mut Box<Md5Ctx>) {
+pub fn vos_md5_final_ex(digest: &mut [u8], buf_len: u32, context: &mut Box<Md5Ctx>) {
     let mut need_another_buff = false;
 
     if digest.is_empty() || buf_len < md5_digest_len!() as u32 {
         return;
     }
 
-    need_another_buff = md5_pad_buff(context);
-    md5_calc_digest_of_buff(context);
+    need_another_buff = vos_md5_pad_buff(context);
+    vos_md5_calc_digest_of_buff(context);
 
     if need_another_buff {
         context.ui_pos = 0;
@@ -342,7 +342,7 @@ pub fn md5_final_ex(digest: &mut [u8], buf_len: u32, context: &mut Box<Md5Ctx>) 
             context.ui_pos += 1;
         }
         md5_record_message_len!(context);
-        md5_calc_digest_of_buff(context);
+        vos_md5_calc_digest_of_buff(context);
     }
 
     md5_compose_digest!(digest, context.aul_state);
@@ -350,21 +350,21 @@ pub fn md5_final_ex(digest: &mut [u8], buf_len: u32, context: &mut Box<Md5Ctx>) 
 }
 
 pub fn vos_md5_final(digest: &mut [u8], context: &mut Box<Md5Ctx>) {
-    md5_final_ex(digest, md5_digest_len!(), context);
+    vos_md5_final_ex(digest, md5_digest_len!(), context);
 }
 
-pub fn vos_md5_calc_ex(output: &mut [u8], output_len: u32, input: &[u8], input_len: u32) {
+pub fn vos_md5_calc_ex(output: &mut [u8], output_len: u32, input: &mut [u8], input_len: u32) {
     let mut context = Box::new(Md5Ctx::new());
 
     if output_len < md5_digest_len!() as u32 {
         return;
     }
 
-    md5_init(&mut context);
-    md5_update(&mut context, input, input_len);
-    md5_final_ex(output, output_len, &mut context);
+    vos_md5_init(&mut context);
+    vos_md5_update(&mut context, input, input_len);
+    vos_md5_final_ex(output, output_len, &mut context);
 }
 
-pub fn vos_md5_calc(output: &mut [u8], input: &[u8], input_len: u32) {
+pub fn vos_md5_calc(output: &mut [u8], input: &mut [u8], input_len: u32) {
     vos_md5_calc_ex(output, md5_digest_len!(), input, input_len);
 }
