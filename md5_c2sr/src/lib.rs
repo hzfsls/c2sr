@@ -2,13 +2,9 @@ pub(crate) mod md5;
 
 use crate::md5::*;
 
-//tests
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-
 
     #[test]
     fn test_vos_md5_init() {

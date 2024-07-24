@@ -118,7 +118,7 @@ fn bzp_heap_init(huffman: &mut Box<BzpHuffmanInfo>) {
 }
 
 fn bzp_huffman_weight_add(w1: i32, w2: i32) -> i32 {
-    ((((w1 as u32) & 0xffffff00) + ((w2 as u32)  & 0xffffff00)) | (bzp_max_fun!(((w1 as u32) & 0x000000ff), ((w2 as u32)  & 0x000000ff)) + 1)) as i32
+    ((((w1 as u32) & 0xffffff00) + ((w2 as u32)  & 0xffffff00)) | (bzp_max_fun!((w1 as u32) & 0x000000ff, (w2 as u32)  & 0x000000ff)) + 1) as i32
 }
 
 fn bzp_build_huffman_tree(huffman: &mut Box<BzpHuffmanInfo>) {
@@ -247,10 +247,10 @@ pub fn bzp_huffman_groups_init(block_size: i32) -> Option<Box<BzpHuffmanGroups>>
     Some(huffman_groups)
 }
 
-fn bzp_huffman_groups_finish(huffman: Box<BzpHuffmanGroups>) {
+pub fn bzp_huffman_groups_finish(huffman: Box<BzpHuffmanGroups>) {
 }
 
-fn bzp_get_huffman_groups(n_block: i32) -> i32 {
+pub fn bzp_get_huffman_groups(n_block: i32) -> i32 {
     let mut n_groups = 1;
     if n_block < bzp_ngroups_block_num_limit0!() {
         n_groups = bzp_ngroups_num_0!();
@@ -346,46 +346,7 @@ fn bzp_select_tree(huffman: &mut Box<BzpHuffmanGroups>) -> i32 {
     id
 }
 
-// ```c
-// void BzpHuffmanMain(BzpHuffmanGroups *huffman)
-// {
-//     int32_t nGroups = BzpGetHuffmanGroups(huffman->nBlock);
-//     huffman->nGroups = nGroups;
-//     BzpInitLenArray(huffman);
-//     int32_t st = 0, ed;
-//     for (int32_t i = 0; i < BZP_MAX_ITER_NUM; i++) {
-//         for (int32_t j = 0; j < nGroups; j++) {
-//             (void)memset_s(huffman->huffmanGroups[j].weight, sizeof(huffman->huffmanGroups[j].weight), 0,
-//                            sizeof(huffman->huffmanGroups[j].weight));
-//         }
-
-//         st = 0;
-//         huffman->nSelect = 0;
-//         while (st < huffman->nBlock) {
-//             ed = BZP_MIN_FUN(huffman->nBlock, st + (int32_t)BZP_ELEMS_NUM_IN_ONE_GROUP) - 1;
-//             BzpCalculateCost(huffman, st, ed);
-//             int32_t id = BzpSelectTree(huffman);
-//             for (int32_t k = st; k <= ed; k++) {
-//                 huffman->huffmanGroups[id].weight[huffman->block[k]]++;
-//             }
-//             st = ed + 1;
-//         }
-//         for (int32_t j = 0; j < nGroups; j++) {
-//             BzpBuildTreeBalanceHeight(&huffman->huffmanGroups[j]);
-//         }
-//     }
-//     BzpGenerateSelectMTF(huffman);
-//     for (int32_t i = 0; i < nGroups; i++) {
-//         BzpGetHuffmanTable(&huffman->huffmanGroups[i]);
-//     }
-// }
-// ```
-
-// Translate from C to Rust:
-
-// ```rust
-
-fn bzp_huffman_main(huffman: &mut Box<BzpHuffmanGroups>) {
+pub fn bzp_huffman_main(huffman: &mut Box<BzpHuffmanGroups>) {
     let n_groups = bzp_get_huffman_groups(huffman.n_block);
     huffman.n_groups = n_groups;
     bzp_init_len_array(huffman);

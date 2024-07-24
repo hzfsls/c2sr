@@ -67,11 +67,11 @@ impl RapidlzCCtx {
 
 const RAPIDLZ_VERSION: &str = "rapidlz 3.24.00.SPC010B100";
 
-fn rapidlz_version_get() -> &'static str {
+pub fn rapidlz_version_get() -> &'static str {
     RAPIDLZ_VERSION
 }
 
-fn rapidlz_compress_bound(src_size: usize) -> usize {
+pub fn rapidlz_compress_bound(src_size: usize) -> usize {
     rapidlz_compressbound!(src_size)
 }
 
@@ -195,7 +195,7 @@ fn rapidlz_store_last_literals<'a>(dst: &'a mut [u8], dst_end: *mut u8, src_curr
         return None;
     }
 
-    dst_curr.clone_from_slice(&src_curr[..lit_length as usize]);
+    dst_curr[..lit_length as usize].copy_from_slice(&src_curr[..lit_length as usize]);
 
     Some(&mut dst_curr[lit_length as usize..])
 }
@@ -338,7 +338,7 @@ fn rapidlz_c_ctx_free(c_ctx: Box<RapidlzCCtx>) {
 
 }
 
-fn rapidlz_compress(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: usize, acceleration: i32) -> usize {
+pub fn rapidlz_compress(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: usize, acceleration: i32) -> usize {
     if src.is_empty() || dst.is_empty() || src_size == 0 || dst_size == 0 {
         rapidlz_log!(rapidlz_input_invalid!(), "input invalid");
         return 0;
@@ -382,6 +382,6 @@ fn rapidlz_compress(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: u
     c_size
 }
 
-fn rapidlz_compress_default(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: usize) -> usize {
+pub fn rapidlz_compress_default(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: usize) -> usize {
     rapidlz_compress(src, dst, src_size, dst_size, 1)
 }

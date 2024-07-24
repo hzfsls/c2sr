@@ -89,7 +89,7 @@ fn rapidlz_copy_match_fast(dst: &mut [u8], match_src: &mut [u8], offset: u16, le
     }
 }
 
-fn rapidlz_decompress(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: usize) -> usize {
+pub fn rapidlz_decompress(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size: usize) -> usize {
     if src.is_empty() || dst.is_empty() || src_size == 0 || dst_size == 0 {
         rapidlz_log!(rapidlz_input_invalid!(), "input invalid\n");
         return 0;
@@ -109,46 +109,51 @@ fn rapidlz_decompress(src: &mut [u8], dst: &mut [u8], src_size: usize, dst_size:
     let mut dst_end_fast = unsafe { dst_end.sub(copy_protect_size!()) };
 
     while src_curr < src_end {
-        'read_match: {
-            token = unsafe { *src_curr };
-            src_curr = unsafe { src_curr.add(1) };
-            lit_len = (token >> 4) as u32;
+    'read_match: {
+        token = unsafe { *src_curr };
+        src_curr = unsafe { src_curr.add(1) };
+        lit_len = (token >> 4) as u32;
 
-            if likely!(lit_len < max_4bit_match!()) {
-                if likely!(unsafe { src_curr.add(lit_len as usize) <= src_end_fast && dst_curr.add(lit_len as usize) <= dst_end_fast }) {
-                    rapidlz_copy_literals_fast(wrap_ptr!(src_curr, src_end), wrap_ptr!(dst_curr, dst_end), lit_len);
-                    dst_curr = unsafe { dst_curr.add(lit_len as usize) };
-                    src_curr = unsafe { src_curr.add(lit_len as usize) };
-                    break 'read_match;
-                }
-            } else {
-                read_optional_length!(lit_len, src_curr, src_end, temp);
-                if likely!(unsafe { src_curr.add(lit_len as usize) <= src_end_fast && dst_curr.add(lit_len as usize) <= dst_end_fast }) {
-                    rapidlz_wild_copy16(wrap_ptr!(src_curr, src_end), wrap_ptr!(dst_curr, dst_end), unsafe { dst_curr.add(lit_len as usize) });
-                    dst_curr = unsafe { dst_curr.add(lit_len as usize) };
-                    src_curr = unsafe { src_curr.add(lit_len as usize) };
-                    break 'read_match;
-                }
+        if likely!(lit_len < max_4bit_match!()) {
+            if likely!(src_curr as usize + lit_len as usize <= src_end_fast as usize 
+                    && dst_curr as usize + lit_len as usize <= dst_end_fast as usize) {
+                copy_16byte(wrap_ptr!(src_curr, src_end), wrap_ptr!(dst_curr, dst_end));
+                dst_curr = unsafe { dst_curr.add(lit_len as usize) };
+                src_curr = unsafe { src_curr.add(lit_len as usize) };
+                break 'read_match;
             }
-
-            let left_src_size = src_end as usize - src_curr as usize;
-            if unlikely!(lit_len as usize > left_src_size) {
-                rapidlz_log!(rapidlz_dst_size_small!(), "lit_len:{} dst_end - dst:{}\n", lit_len, left_src_size);
-                return 0;
-            }
-            unsafe { std::ptr::copy(src_curr, dst_curr, lit_len as usize); }
-                
-            dst_curr = unsafe { dst_curr.add(lit_len as usize) };
-            src_curr = unsafe { src_curr.add(lit_len as usize) };
-
-            if left_src_size == lit_len as usize {
-                return dst_curr as usize - dst.as_mut_ptr() as usize;
+        } else {
+            read_optional_length!(lit_len, src_curr, src_end, temp);
+            if likely!(src_curr as usize + lit_len as usize <= src_end_fast as usize 
+                && dst_curr as usize + lit_len as usize <= dst_end_fast as usize) {
+                rapidlz_wild_copy16(wrap_ptr!(src_curr, src_end), wrap_ptr!(dst_curr, dst_end), unsafe { dst_curr.add(lit_len as usize) });
+                dst_curr = unsafe { dst_curr.add(lit_len as usize) };
+                src_curr = unsafe { src_curr.add(lit_len as usize) };
+                break 'read_match;
             }
         }
 
+        let left_src_size = src_end as usize - src_curr as usize;
+        if unlikely!(lit_len as usize > left_src_size) {
+            rapidlz_log!(rapidlz_dst_size_small!(), "lit_len:{} dst_end - dst:{}\n", lit_len, left_src_size);
+            return 0;
+        }
+            
+        dst_curr = unsafe { dst_curr.add(lit_len as usize) };
+        src_curr = unsafe { src_curr.add(lit_len as usize) };
+
+        if left_src_size == lit_len as usize {
+            return dst_curr as usize - dst.as_mut_ptr() as usize;
+        }
+    } // 'read_match
+
         offset = read_le16bit(wrap_ptr!(src_curr, src_end));
+        println!("decompress offset: {}", offset);
         src_curr = unsafe { src_curr.add(2) };
+        println!("decompress src_curr: {:x}", src_curr as usize);
         match_src = unsafe { dst_curr.sub(offset as usize) };
+        println!("decompress match_src: {:x}", match_src as usize);
+        println!("decompress dst: {:x}", dst.as_mut_ptr() as usize);
         if unlikely!(match_src < dst.as_mut_ptr()) {
             rapidlz_log!(rapidlz_format_invalid!(), "rapidlz format invalid\n");
             return 0;

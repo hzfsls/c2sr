@@ -57,7 +57,7 @@ pub fn bzp_block_sort_init(block_size: i32) -> Option<Box<BzpBwtInfo>> {
         return None;
     }
     let mut bwt = Box::new(BzpBwtInfo::new());
-    let space_size = block_size * bzp_block_reserved_space_size!();
+    let space_size = block_size * bzp_base_block_size!();
     bwt.n_block_max = space_size - bzp_block_reserved_space_size!();
     bwt.block = vec![0; space_size as usize];
     bwt.sort_block = vec![0; space_size as usize];
@@ -67,7 +67,7 @@ pub fn bzp_block_sort_init(block_size: i32) -> Option<Box<BzpBwtInfo>> {
     Some(bwt)
 }
 
-fn bzp_shell_sort(sort_block: &mut [i32], idx: &mut [i32], l: i32, r: i32) {
+pub fn bzp_shell_sort(sort_block: &mut [i32], idx: &mut [i32], l: i32, r: i32) {
     let increments = [bzp_shell_sort_increment1!(), bzp_shell_sort_increment0!()];
     if l >= r {
         return;
@@ -104,16 +104,16 @@ fn bzp_swap_3_elem(sort_block: &mut [i32], l_pos: i32, e_pos: i32, r_pos: i32) {
 }
 
 fn bzp_select_mid_val(sort_block: &[i32], idx: &[i32], mut l: i32, mut r: i32) -> i32 {
-    let mid = (l + r) >> 1;
-    let vl = idx[sort_block[l as usize] as usize];
-    let vmid = idx[sort_block[mid as usize] as usize];
-    let vr = idx[sort_block[r as usize] as usize];
+    let mut mid = (l + r) >> 1;
+    let mut vl = idx[sort_block[l as usize] as usize];
+    let mut vmid = idx[sort_block[mid as usize] as usize];
+    let mut vr = idx[sort_block[r as usize] as usize];
     if vl > vr {
         let tmp = l;
         l = r;
         r = tmp;
-        let vl = idx[sort_block[l as usize] as usize];
-        let vr = idx[sort_block[r as usize] as usize];
+        vl = idx[sort_block[l as usize] as usize];
+        vr = idx[sort_block[r as usize] as usize];
     }
     if vmid <= vl {
         vl
@@ -177,7 +177,7 @@ fn bzp_q_sort_single(sort_block: &mut [i32], idx: &mut [i32], stack: &mut Box<Bz
     }
 }
 
-fn bzp_q_sort(sort_block: &mut [i32], idx: &mut [i32], l: i32, r: i32) {
+pub fn bzp_quick_sort(sort_block: &mut [i32], idx: &mut [i32], l: i32, r: i32) {
     let mut stack = Box::new(BzpQSortInfo::new());
     stack.cnt = 0;
     stack.stack_l[stack.cnt as usize] = l;
@@ -233,7 +233,7 @@ fn bzp_binary_lifting_sort(bwt: &mut Box<BzpBwtInfo>) {
         let mut st = 0;
         sortflag = false;
         for i in 0..bwt.n_block {
-            if bwt.is_start_pos[i as usize] == 1 {
+            if bwt.is_start_pos[i as usize] != 0 {
                 st = i;
             }
             let mut pos = bwt.sort_block[i as usize] - m;
@@ -251,7 +251,7 @@ fn bzp_binary_lifting_sort(bwt: &mut Box<BzpBwtInfo>) {
             r -= 1;
             if l < r {
                 sortflag = true;
-                bzp_q_sort(&mut bwt.sort_block, &mut bwt.idx, l, r);
+                bzp_quick_sort(&mut bwt.sort_block, &mut bwt.idx, l, r);
                 bzp_update_flag(bwt, l, r);
             }
             l = r + 1;
@@ -272,5 +272,5 @@ pub fn bzp_block_sort_main(bwt: &mut Box<BzpBwtInfo>) {
     }
 }
 
-fn bzp_bwt_finish(bwt: Box<BzpBwtInfo>) {
+pub fn bzp_bwt_finish(bwt: Box<BzpBwtInfo>) {
 }

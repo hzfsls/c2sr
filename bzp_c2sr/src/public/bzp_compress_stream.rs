@@ -111,6 +111,8 @@ fn bzp_file_init() -> Option<Box<BzpFile>> {
     }
     compress_file.input = in_stream?;
     compress_file.output = out_stream?;
+    compress_file.input.pos = 0;
+    compress_file.output.pos = 0;
     compress_file.num = 0;
     compress_file.las_char = bzp_ascii_size!();
     compress_file.state = bzp_input_compress!();
@@ -123,6 +125,7 @@ pub fn bzp_file_finish(bzp_f: Box<BzpFile>) {
 
 fn bzp_out_com_data_init(block_size: i32) -> Option<Box<BzpOutComdata>> {
     let mut out_data = Box::new(BzpOutComdata::new());
+    out_data.out = vec![0; block_size as usize * bzp_base_block_size!() as usize];
     out_data.block_size = block_size;
     Some(out_data)
 }
@@ -132,7 +135,7 @@ fn bzp_out_com_data_finish(data: Box<BzpOutComdata>) {
 
 fn bzp_write_to_array(val: i32, n: i32, data: &mut Box<BzpOutComdata>) {
     while data.n_buf >= bzp_bits8!() {
-        data.out.push((data.buf >> bzp_bits24!()) as u8);
+        data.out[data.num as usize] = (data.buf >> bzp_bits24!()) as u8;
         data.num += 1;
         data.n_buf -= bzp_bits8!();
         data.buf <<= bzp_bits8!();
@@ -182,9 +185,11 @@ fn bzp_write_block_head(out_data: &mut Box<BzpOutComdata>, bwt: &mut Box<BzpBwtI
     bzp_write_to_array(bzp_block_head_3!(), bzp_bits8!(), out_data);
     bzp_write_to_array(bzp_block_head_4!(), bzp_bits8!(), out_data);
     bzp_write_to_array(bzp_block_head_5!(), bzp_bits8!(), out_data);
+    println!("compress crc: {:x}", bwt.block_crc);
     bzp_write_int32(bwt.block_crc as i32, out_data);
     bzp_write_to_array(0, bzp_bit!(), out_data);
     bzp_write_to_array(bwt.ori_ptr, bzp_bits24!(), out_data);
+    println!("compress ori_ptr: {:x}", bwt.ori_ptr);
 }
 
 fn bzp_write_valid_ascii(out_data: &mut Box<BzpOutComdata>, bwt: &mut Box<BzpBwtInfo>) {
@@ -213,6 +218,7 @@ fn bzp_write_valid_ascii(out_data: &mut Box<BzpOutComdata>, bwt: &mut Box<BzpBwt
 
 fn bzp_write_select(out_data: &mut Box<BzpOutComdata>, huffman: &mut Box<BzpHuffmanGroups>) {
     bzp_write_to_array(huffman.n_select, bzp_bits15!(), out_data);
+    println!("compress n_select: {}", huffman.n_select);
     for i in 0..huffman.n_select {
         for j in 0..huffman.select_mtf[i as usize] {
             bzp_write_to_array(1, bzp_bit!(), out_data);
@@ -262,22 +268,20 @@ fn bzp_write_file_end(out_data: &mut Box<BzpOutComdata>, combined_crc: i32) {
     bzp_write_to_array(bzp_file_end_3!(), bzp_bits8!(), out_data);
     bzp_write_to_array(bzp_file_end_4!(), bzp_bits8!(), out_data);
     bzp_write_to_array(bzp_file_end_5!(), bzp_bits8!(), out_data);
+    println!("compress combined_crc: {:x}", combined_crc);
     bzp_write_int32(combined_crc, out_data);
 }
 
 fn bzp_flushbuf(out_data: &mut Box<BzpOutComdata>) {
     while out_data.n_buf > 0 {
-        out_data.out.push((out_data.buf >> bzp_bits24!()) as u8);
+        out_data.out[out_data.num as usize] = (out_data.buf >> bzp_bits24!()) as u8;
         out_data.num += 1;
         out_data.n_buf -= bzp_bits8!();
         out_data.buf <<= bzp_bits8!();
     }
 }
 
-fn bzp_compress_one_block(bzp_info: &mut Box<BzpAlgorithmInfo>, out_data: &mut Box<BzpOutComdata>) -> i32 {
-    let bwt = &mut bzp_info.bwt;
-    let mtf = &mut bzp_info.mtf;
-    let huffman = &mut bzp_info.huffman;
+fn bzp_compress_one_block(bwt: &mut Box<BzpBwtInfo>, mtf: &mut Box<BzpMtfInfo>, huffman: &mut Box<BzpHuffmanGroups>, out_data: &mut Box<BzpOutComdata>) -> i32 {
     let mut ret = bzp_ok!();
     if bwt.n_block == 0 {
         return bzp_ok!();
@@ -299,9 +303,10 @@ fn bzp_compress_one_block(bzp_info: &mut Box<BzpAlgorithmInfo>, out_data: &mut B
         huffman.block = mtf.mtf_v.to_vec();
         huffman.mtf_freq = mtf.mtf_freq.to_vec();
         huffman.n_block = mtf.n_mtf;
-        // bzp_huffman_main(huffman);
+        bzp_huffman_main(huffman);
         bzp_write_block_head(out_data, bwt);
         bzp_write_valid_ascii(out_data, bwt);
+        println!("compress n_groups: {}", huffman.n_groups);
         bzp_write_to_array(huffman.n_groups, bzp_bits3!(), out_data);
         bzp_write_select(out_data, huffman);
         bzp_write_len(out_data, huffman);
@@ -316,14 +321,11 @@ fn bzp_buff_to_stream(bzpf: &mut Box<BzpFile>, out_data: &mut Box<BzpOutComdata>
     while pos < out_data.num {
         bzpf.output.n_buf = 0;
         while pos < out_data.num && bzpf.output.n_buf < bzp_buf_size!() {
-            let idx = bzpf.output.n_buf;
-            bzpf.output.buf[idx as usize] = out_data.out[pos as usize];
-            pos += 1;
+            bzpf.output.buf[bzpf.output.n_buf as usize] = out_data.out[pos as usize];
             bzpf.output.n_buf += 1;
+            pos += 1;         
         }
-        let idx = bzpf.output.n_buf;
-        let buf = bzpf.output.buf;
-        let n2 = bzpf.output.file_ptr.as_mut().unwrap().write(&buf[0..idx as usize]);
+        let n2 = bzpf.output.file_ptr.as_mut().unwrap().write(&bzpf.output.buf[0..bzpf.output.n_buf as usize]);
         if n2.is_err() || n2.unwrap() != bzpf.output.n_buf as usize {
             return bzp_error_io!();
         }
@@ -360,6 +362,7 @@ fn bzp_add_char_to_block(lasch: i32, num: i32, bwt: &mut Box<BzpBwtInfo>) {
     }
     if num >= bzp_rlc_num_4!() {
         bwt.block[bwt.n_block as usize] = (num - bzp_rlc_num_4!()) as u8;
+        bwt.n_block += 1;
         bwt.in_use[(num - bzp_rlc_num_4!()) as usize] = true;
     }
     bwt.in_use[lasch as usize] = true;
@@ -403,14 +406,11 @@ fn bzp_reset_compress(bwt: &mut Box<BzpBwtInfo>, out_data: &mut Box<BzpOutComdat
 
 
 fn bzp_process_data(bzp_info: &mut Box<BzpAlgorithmInfo>, is_last_data: bool) -> i32 {
-    let bzp_info_copy: &mut Box<BzpAlgorithmInfo> = unsafe {
-        std::mem::transmute_copy(bzp_info)
-    };
-    let bzpf = &mut bzp_info_copy.compress_file;
-    let mtf = &mut bzp_info_copy.mtf;
-    let huffman = &mut bzp_info_copy.huffman;
-    let out_data = &mut bzp_info_copy.out_data;
-    let bwt = &mut bzp_info_copy.bwt;
+    let bzpf = &mut bzp_info.compress_file;
+    let mtf = &mut bzp_info.mtf;
+    let huffman = &mut bzp_info.huffman;
+    let out_data = &mut bzp_info.out_data;
+    let bwt = &mut bzp_info.bwt;
 
     bzpf.state = bzp_input_compress!();
     let mut ret = bzp_ok!();
@@ -426,12 +426,12 @@ fn bzp_process_data(bzp_info: &mut Box<BzpAlgorithmInfo>, is_last_data: bool) ->
         if bzpf.state == bzp_input_compress!() {
             bzp_buff_to_block_rlc(bzpf, bwt, is_last_data);
             if is_last_data && bzp_buff_read_empty!(bzpf) {
-                ret = bzp_compress_one_block(bzp_info, out_data);
+                ret = bzp_compress_one_block(bwt, mtf, huffman, out_data);
                 bzp_write_file_end(out_data, bwt.combined_crc as i32);
                 bzp_flushbuf(out_data);
                 bzpf.state = bzp_output_compress!();
             } else if bzp_block_full!(bwt) {
-                ret = bzp_compress_one_block(bzp_info, out_data);
+                ret = bzp_compress_one_block(bwt, mtf, huffman, out_data);
                 bzpf.state = bzp_output_compress!();
             } else {
                 bzpf.state = bzp_retuen_compress!();
@@ -454,7 +454,7 @@ fn bzp_compress_end(bzp_info: Box<BzpAlgorithmInfo>) {
     bzp_algorithm_info_finish(bzp_info);
 }
 
-fn bzp_compress_stream(in_name: &str, out_name: &str, block_size: i32) -> i32 {
+pub fn bzp_compress_stream(in_name: &str, out_name: &str, block_size: i32) -> i32 {
     let mut ret = bzp_ok!();
     let mut is_last_data = false;
     if in_name.is_empty() || out_name.is_empty() || bzp_invalid_block_size!(block_size) {

@@ -56,8 +56,7 @@ fn bzp_read_bits(n_bit: i32, in_data: &mut Box<InDeComdata>) -> u32 {
     while in_data.n_buf < n_bit {
         if in_data.input.n_buf == in_data.input.pos {
             let mut file_ptr = in_data.input.file_ptr.as_ref().unwrap();
-            let mut buf = in_data.input.buf;
-            in_data.input.n_buf = file_ptr.read(&mut buf).unwrap() as i32;
+            in_data.input.n_buf = file_ptr.read(&mut in_data.input.buf).unwrap() as i32;
             in_data.input.pos = 0;
         }
         let data = in_data.input.buf[in_data.input.pos as usize] as u32;
@@ -160,11 +159,12 @@ fn bzp_read_uint32(in_data: &mut Box<InDeComdata>) -> u32 {
 
 
 fn bzp_de_huffman_select(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDecode>) -> i32 {
+    let mut ch: u8;
     let mut select_mtf = [0; bzp_huffman_max_size_select!()];
     for i in 0..huffman.n_select {
         let mut j = -1;
         loop {
-            let ch = bzp_read_bits(bzp_bit!(), in_data) as u8;
+            ch = bzp_read_bits(bzp_bit!(), in_data) as u8;
             j += 1;
             if ch == 0 {
                 break;
@@ -192,10 +192,11 @@ fn bzp_de_huffman_select(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHu
 }
 
 fn bzp_de_huffman_len(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDecode>) -> i32 {
+    let mut ch: u8;
     for i in 0..huffman.n_groups {
+        let mut val = bzp_read_bits(bzp_bits5!(), in_data) as i32;
         for j in 0..huffman.alpha_size {
-            let mut val = bzp_read_bits(bzp_bits5!(), in_data) as i32;
-            let mut ch = bzp_read_bits(bzp_bit!(), in_data) as u8;
+            ch = bzp_read_bits(bzp_bit!(), in_data) as u8;
             while ch != 0 {
                 ch = bzp_read_bits(bzp_bit!(), in_data) as u8;
                 val += if ch == 0 { 1 } else { -1 };
@@ -210,8 +211,9 @@ fn bzp_de_huffman_len(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffm
     bzp_ok!()
 }
 
-fn bzp_mtf_decode(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDecode>, debwt: &mut Box<BzpBwtDecodeInfo>) -> i32 {
+fn bzp_mtf_de_code(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDecode>, debwt: &mut Box<BzpBwtDecodeInfo>) -> i32 {
     debwt.n_block = 0;
+    let mut ch: u8;
     let nin_use = huffman.alpha_size - bzp_extra_chars_num!();
     let eob = nin_use + 1;
     let mut val = bzp_huffman_decode_step(huffman, in_data);
@@ -219,13 +221,11 @@ fn bzp_mtf_decode(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDe
         if val == 0 || val == 1 {
             let mut res = 0;
             let mut base_num = 1;
-            loop {
+            let mut cnt = 0;
+            while val == 0 || val == 1 {
                 res = res + (val + 1) * base_num;
                 base_num <<= 1;
                 val = bzp_huffman_decode_step(huffman, in_data);
-                if val != 0 && val != 1 {
-                    break;
-                }
             }
             for _ in 0..res {
                 debwt.block[debwt.n_block as usize] = in_data.list[0] as u8;
@@ -233,13 +233,13 @@ fn bzp_mtf_decode(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDe
             }
         } else {
             let pos = val - 1;
-            let ch = in_data.list[pos as usize];
-            debwt.block[debwt.n_block as usize] = ch as u8;
+            ch = in_data.list[pos as usize] as u8;
+            debwt.block[debwt.n_block as usize] = ch;
             debwt.n_block += 1;
             for j in (1..=pos).rev() {
                 in_data.list[j as usize] = in_data.list[(j - 1) as usize];
             }
-            in_data.list[0] = ch;
+            in_data.list[0] = ch as i32;
             val = bzp_huffman_decode_step(huffman, in_data);
         }
     }
@@ -301,39 +301,48 @@ fn bzp_get_dictionary_list(in_data: &mut Box<InDeComdata>) -> i32 {
 }
 
 fn bzp_de_compress_one_block(in_data: &mut Box<InDeComdata>, huffman: &mut Box<BzpHuffmanDecode>, debwt: &mut Box<BzpBwtDecodeInfo>) -> i32 {
+    let mut ret = bzp_ok!();
     bzp_check_file_head(in_data);
     let block_crc = bzp_read_uint32(in_data);
-    bzp_read_bits(bzp_bits8!(), in_data);
+    println!("decompress crc: {:x}", block_crc);
+    bzp_read_bits(bzp_bit!(), in_data);
     let ori_ptr = bzp_read_uint24(in_data);
+    println!("decompress ori_ptr: {:x}", ori_ptr);
     if ori_ptr < 0 || ori_ptr > (bzp_base_block_size!() * in_data.block_size) as u32 {
         return bzp_error_data!();
     }
     let nin_use = bzp_get_dictionary_list(in_data);
     huffman.alpha_size = nin_use + bzp_extra_chars_num!();
     huffman.n_groups = bzp_read_bits(bzp_bits3!(), in_data) as i32;
+    println!("decompress n_groups: {}", huffman.n_groups );
     if huffman.n_groups < bzp_ngroups_num_0!() || huffman.n_groups > bzp_ngroups_num_4!() {
         return bzp_error_data!();
     }
     huffman.n_select = bzp_read_bits(bzp_bits15!(), in_data) as i32;
+    println!("decompress n_select: {}", huffman.n_select);
     let n_select_upper_limit = in_data.block_size * bzp_base_block_size!() / bzp_elems_num_in_one_group!() + 1;
     if huffman.n_select < 1 || huffman.n_select > n_select_upper_limit {
         return bzp_error_data!();
     }
-    bzp_de_huffman_select(in_data, huffman);
-    bzp_de_huffman_len(in_data, huffman);
+    ret |= bzp_de_huffman_select(in_data, huffman);
+    ret |= bzp_de_huffman_len(in_data, huffman);
+    if ret != bzp_ok!() {
+        return ret;
+    }
     bzp_generate_decode_table(huffman);
     debwt.ori_ptr = ori_ptr as i32;
-    bzp_mtf_decode(in_data, huffman, debwt);
+    bzp_mtf_de_code(in_data, huffman, debwt);
     if debwt.n_block >= bzp_base_block_size!() * in_data.block_size {
         return bzp_error_data!();
     }
     bzp_bwt_decode(debwt);
     bzp_de_code_to_stream(in_data, debwt);
     in_data.block_crc = !in_data.block_crc;
+    println!("decompress in_data.block_crc: {:x}", in_data.block_crc);
     if block_crc != in_data.block_crc {
         return bzp_error_data!();
     }
-    bzp_ok!()
+    ret
 }
 
 fn bzp_read_file_end(in_data: &mut Box<InDeComdata>, cal_total_crc: u32) -> i32 {
@@ -366,21 +375,21 @@ fn bzp_read_file_end(in_data: &mut Box<InDeComdata>, cal_total_crc: u32) -> i32 
 
 fn bzp_read_file_head(in_data: &mut Box<InDeComdata>) -> i32 {
     let ch = bzp_read_bits(bzp_bits8!(), in_data) as u8;
-    if ch != bzp_block_head_1!() {
-        return bzp_error_data!();
+    if ch != bzp_hdr_b!() {
+        return bzp_error_data_magic!();
     }
     let ch = bzp_read_bits(bzp_bits8!(), in_data) as u8;
-    if ch != bzp_block_head_2!() {
-        return bzp_error_data!();
+    if ch != bzp_hdr_z!() {
+        return bzp_error_data_magic!();
     }
     let ch = bzp_read_bits(bzp_bits8!(), in_data) as u8;
-    if ch != bzp_block_head_3!() {
-        return bzp_error_data!();
+    if ch != bzp_hdr_h!() {
+        return bzp_error_data_magic!();
     }
     let ch = bzp_read_bits(bzp_bits8!(), in_data) as u8;
-    let block_size = ch - bzp_block_head_0!();
+    let block_size = ch - bzp_hdr_0!();
     if bzp_invalid_block_size!(block_size) {
-        return bzp_error_data!();
+        return bzp_error_data_magic!();
     }
     in_data.block_size = block_size as i32;
     bzp_ok!()
@@ -390,17 +399,15 @@ fn bzp_de_compress_data(in_data: &mut Box<InDeComdata>) -> i32 {
     let mut ret = bzp_ok!();
     let mut cal_total_crc = 0;
     let mut ch = 0;
+    
     ret = bzp_read_file_head(in_data);
     if ret != bzp_ok!() {
         return ret;
     }
     let mut huffman = bzp_huffman_decode_init(in_data.block_size).unwrap();
     let mut debwt = bzp_bwt_decode_init(in_data.block_size).unwrap();
-    loop {
-        ch = bzp_read_bits(bzp_bits8!(), in_data) as u8;
-        if ch == bzp_file_end_0!() {
-            break;
-        }
+    while {ch = bzp_read_bits(bzp_bits8!(), in_data) as u8; 
+            ch != bzp_file_end_0!() } {
         if ch != bzp_block_head_0!() {
             ret = bzp_error_data!();
             break;
@@ -429,7 +436,7 @@ fn bzp_de_com_stream_finish(in_data: Box<InDeComdata>, in_stream: Box<BzpStream>
 }
 
 
-fn bzp_de_compress_stream(in_name: &str, out_name: &str) -> i32 {
+pub fn bzp_de_compress_stream(in_name: &str, out_name: &str) -> i32 {
     let mut ret = bzp_ok!();
     if in_name.is_empty() || out_name.is_empty() {
         return bzp_error_param!();
@@ -457,7 +464,7 @@ fn bzp_de_compress_stream(in_name: &str, out_name: &str) -> i32 {
 
     ret = bzp_de_compress_data(&mut in_data);
     if in_data.output.n_buf > 0 {
-        let n2 = in_data.output.file_ptr.as_ref().unwrap().write(&in_data.output.buf).unwrap() as i32;
+        let n2 = in_data.output.file_ptr.as_ref().unwrap().write(&in_data.output.buf[..in_data.output.n_buf as usize]).unwrap() as i32;
         if n2 != in_data.output.n_buf {
             ret = bzp_error_io!();
         }

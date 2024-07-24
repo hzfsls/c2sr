@@ -28,14 +28,17 @@ pub(crate) use likely;
 macro_rules! unlikely { ($x:expr) => { $x } }
 pub(crate) use unlikely;
 
+#[repr(packed)]
 pub(crate) struct UnalignU16 {
     pub v: u16,
 }
 
+#[repr(packed)]
 pub(crate) struct UnalignU32 {
     pub v: u32,
 }
 
+#[repr(packed)]
 pub(crate) struct UnalignU64 {
     pub v: u64,
 }

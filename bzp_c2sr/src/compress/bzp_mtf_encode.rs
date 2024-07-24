@@ -61,19 +61,19 @@ fn bzp_map_input_char(mtf: &mut Box<BzpMtfInfo>, list: &mut [u8], len_list: i32)
 }
 
 
-fn bzp_num_encode(mtf: &mut Box<BzpMtfInfo>, num: i32) {
+pub fn bzp_num_encode(mtf: &mut Box<BzpMtfInfo>, num: i32) {
     let mut num = num << 1;
     loop {
         num >>= 1;
         num -= 1;
         if num & 1 != 0 {
-            mtf.mtf_v[mtf.n_mtf as usize] = bzp_mtf_encode0!();
-            mtf.mtf_freq[bzp_mtf_encode1!() as usize] += 1;
+            mtf.mtf_v[mtf.n_mtf as usize] = bzp_mtf_encode1!();
             mtf.n_mtf += 1;
+            mtf.mtf_freq[bzp_mtf_encode1!() as usize] += 1;
         } else {
             mtf.mtf_v[mtf.n_mtf as usize] = bzp_mtf_encode0!();
-            mtf.mtf_freq[bzp_mtf_encode0!() as usize] += 1;
             mtf.n_mtf += 1;
+            mtf.mtf_freq[bzp_mtf_encode0!() as usize] += 1;
         }
         if num < bzp_mtf_encode_base!() {
             break;
@@ -124,5 +124,5 @@ pub fn bzp_mtf_main(mtf: &mut Box<BzpMtfInfo>) {
     mtf.n_mtf += 1;
 }
 
-fn bzp_mtf_finish(mtf: Box<BzpMtfInfo>) {
+pub fn bzp_mtf_finish(mtf: Box<BzpMtfInfo>) {
 }

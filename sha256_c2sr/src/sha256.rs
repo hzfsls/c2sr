@@ -10,6 +10,17 @@ pub(crate) use sha256_block_size;
 macro_rules! sha256_digest_size { () => { 32 }; }
 pub(crate) use sha256_digest_size;
 
+pub fn c2sr_memcpy<A, B> (dest: &mut [B], src: &[A], size: usize) {
+    unsafe {
+        std::ptr::copy_nonoverlapping(
+            src.as_ptr() as *const B,
+            dest.as_mut_ptr(),
+            size
+        );
+    }
+}
+
+
 pub struct VosSha256Ctx {
     pub h: [u32; 8],
     pub n: [u32; 2],
@@ -111,20 +122,21 @@ pub fn vos_sha256_ctx_prepare(pst_ctx: &mut Box<VosSha256Ctx>, ui_len: u32) -> u
     return sha256_ok!();
 }
 
-pub fn vos_sha256_last_padding(puc_data: &[u8], ui_len: u32, pst_ctx: &mut Box<VosSha256Ctx>, pui_padding_len: &mut u32) -> u32 {
+pub fn vos_sha256_last_padding(puc_data: &mut [u8], ui_len: u32, pst_ctx: &mut Box<VosSha256Ctx>, pui_padding_len: &mut u32) -> u32 {
     let mut err: i32;
     let ui_blc_len = pst_ctx.block_len;
-    let mut puc_block = unsafe { std::mem::transmute::<&mut [u32], &mut [u8]>(&mut pst_ctx.block) };
-    
+    let mut puc_block: &mut [u8] = unsafe {
+        std::slice::from_raw_parts_mut(pst_ctx.block.as_ptr() as *mut u8, pst_ctx.block.len() * std::mem::size_of::<u32>() / std::mem::size_of::<u8>())
+    };
 
     if ui_len >= sha256_block_size!() as u32 || ui_len + ui_blc_len as u32 >= sha256_block_size!() as u32 {
-        puc_block[ui_blc_len as usize..].copy_from_slice(&puc_data[..(sha256_block_size!() - ui_blc_len) as usize]);
-        vos_sha256_compress_mul(pst_ctx, &puc_block, 1);
+        c2sr_memcpy(puc_block[ui_blc_len as usize..].as_mut(), &puc_data, (sha256_block_size!() - ui_blc_len) as usize);
+        vos_sha256_compress_mul(pst_ctx, puc_block, 1);
         *pui_padding_len = (sha256_block_size!() - ui_blc_len) as u32;
         pst_ctx.block_len = 0;
         puc_block.fill(0);
     } else {
-        puc_block[ui_blc_len as usize..].copy_from_slice(&puc_data[..ui_len as usize]);
+        c2sr_memcpy(&mut puc_block[ui_blc_len as usize..], &puc_data, ui_len as usize);
         pst_ctx.block_len += ui_len;
         return sha256_error!();
     }
@@ -147,9 +159,13 @@ pub fn vos_sha256_hash_by_blc_multi(puc_data: &mut [u8], ui_len: u32, pst_ctx: &
 
     if ui_len_tmp != 0 {
         pst_ctx.block_len = ui_len_tmp;
-        pst_ctx.block[..ui_len_tmp as usize].copy_from_slice(
-            unsafe { std::mem::transmute(puc_src) }
-        );
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                puc_src.as_ptr(),
+                pst_ctx.block.as_mut_ptr() as *mut u8,
+                ui_len_tmp as usize
+            );
+        }
     }
     return;
 }
@@ -178,8 +194,10 @@ pub fn vos_sha256_hash(puc_data: &mut [u8], ui_len: u32, pst_ctx: &mut Box<VosSh
 
 pub fn vos_sha256_end(puc_out: &mut [u8], ui_out_size: u32, pst_ctx: &mut Box<VosSha256Ctx>) {
     let mut ui_index: u32;
-    let mut puc_block: &mut [u8];
-    let mut ui_blc_len: u32;
+    let mut puc_block: &mut [u8] = unsafe {
+        std::slice::from_raw_parts_mut(pst_ctx.block.as_ptr() as *mut u8, pst_ctx.block.len() * std::mem::size_of::<u32>() / std::mem::size_of::<u8>())
+    };
+    let mut ui_blc_len: u32 = pst_ctx.block_len;
 
     if pst_ctx.corrupted == 1 || ui_out_size < pst_ctx.out_len {
         *pst_ctx = Box::new(VosSha256Ctx::new());
@@ -187,25 +205,31 @@ pub fn vos_sha256_end(puc_out: &mut [u8], ui_out_size: u32, pst_ctx: &mut Box<Vo
     }
 
     if pst_ctx.computed == 0 {
-        puc_block = unsafe { std::mem::transmute::<&mut [u32], &mut [u8]>(&mut pst_ctx.block) };
-        puc_block[pst_ctx.block_len as usize] = 0x80;
-        if pst_ctx.block_len > (sha256_block_size!() - 8) {
-            puc_block[pst_ctx.block_len as usize..].fill(0);
+        puc_block[ui_blc_len as usize] = 0x80;
+        ui_blc_len += 1;
+        if ui_blc_len > (sha256_block_size!() - 8) {
+            puc_block[ui_blc_len as usize..sha256_block_size!()].fill(0);
             ui_blc_len = 0;
             vos_sha256_compress_mul(pst_ctx, puc_block, 1);
         }
 
-        puc_block[pst_ctx.block_len as usize..].fill(0);
-        put_uint32_be!(pst_ctx.n[1], puc_block, sha256_block_size!() - 8);
-        put_uint32_be!(pst_ctx.n[0], puc_block, sha256_block_size!() - 4);
+        puc_block[ui_blc_len as usize..(sha256_block_size!() - 8) as usize].fill(0);
+        puc_block = &mut puc_block[(sha256_block_size!() - 8) as usize..];
+        put_uint32_be!(pst_ctx.n[1], puc_block, 0);
+        puc_block = &mut puc_block[std::mem::size_of::<u32>()..];
+        put_uint32_be!(pst_ctx.n[0], puc_block, 0);
+        puc_block = &mut puc_block[std::mem::size_of::<u32>()..];
+        puc_block = unsafe {
+            std::slice::from_raw_parts_mut(puc_block.as_ptr().sub(sha256_block_size!()) as *mut u8, puc_block.len() + sha256_block_size!())
+        };
         vos_sha256_compress_mul(pst_ctx, puc_block, 1);
         pst_ctx.block_len = 0;
-        puc_block.fill(0);
+        puc_block[..sha256_block_size!()].fill(0);
         pst_ctx.computed = 1;
     }
 
     ui_blc_len = if pst_ctx.out_len <= ui_out_size { pst_ctx.out_len } else { ui_out_size } / (std::mem::size_of::<u32>() as u32);
-    if puc_out.is_empty() {
+    if !puc_out.is_empty() {
         for ui_index in 0..ui_blc_len {
             put_uint32_be!(pst_ctx.h[ui_index as usize], puc_out, (std::mem::size_of::<u32>() as u32) * ui_index);
         }
@@ -245,7 +269,7 @@ macro_rules! vos_round {
 }
 pub(crate) use vos_round;
 
-pub fn vos_sha256_compress_block(state: &mut [u32], block: &[u8]) {
+pub fn vos_sha256_compress_block(state: &mut [u32], block: &mut [u8]) {
     let mut W = [0u32; 64];
     let mut i: u32;
     let mut j: u32;
@@ -302,13 +326,13 @@ pub fn vos_sha256_compress_block(state: &mut [u32], block: &[u8]) {
     state[j as usize] += h;
 }
 
-pub fn vos_sha256_compress_mul(pst_ctx: &mut Box<VosSha256Ctx>, puc_input: &[u8], ui_num: u32) {
+pub fn vos_sha256_compress_mul(pst_ctx: &mut Box<VosSha256Ctx>, puc_input: &mut [u8], ui_num: u32) {
     let mut ui_num_tmp = ui_num;
     let mut puc_block = puc_input;
 
     while ui_num_tmp != 0 {
         vos_sha256_compress_block(&mut pst_ctx.h, puc_block);
-        puc_block = &puc_block[sha256_block_size!() as usize..];
+        puc_block = &mut puc_block[sha256_block_size!() as usize..];
         ui_num_tmp -= 1;
     }
 }
