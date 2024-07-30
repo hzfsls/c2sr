@@ -263,7 +263,7 @@ mod tests {
         let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         let in_name = d.join("test_data/decompress_samples/2.txt.bz2");
         let in_name = in_name.to_str().unwrap();
-        let out_name = d.join("test_data/decompress_out/2.txt.bz2");
+        let out_name = d.join("test_data/decompress_out/2.txt");
         let out_name = out_name.to_str().unwrap();
         let block_size = 9;
         let mut ret = bzp_compress_stream("", out_name, 9);
@@ -293,9 +293,9 @@ mod tests {
     #[test]
     fn ut_de_com_stream_run_ok_func() {
         let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let in_name = d.join("test_data/decompress_samples/shell.nix.bz2");
+        let in_name = d.join("test_data/decompress_samples/2.txt.bz2");
         let in_name = in_name.to_str().unwrap();
-        let out_name = d.join("test_data/decompress_out/shell.nix");
+        let out_name = d.join("test_data/decompress_out/2.txt");
         let out_name = out_name.to_str().unwrap();
         let block_size = 9;
         let ret = bzp_de_compress_stream(in_name, out_name);
@@ -305,7 +305,7 @@ mod tests {
     #[test]
     fn ut_de_com_stream_param_error_func() {
         let mut d = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let in_name = d.join("test_data/decompress_samples/2.txt.bz2");
+        let in_name = d.join("test_data/decompress_samples/2.txt.bz2.ori");
         let in_name = in_name.to_str().unwrap();
         let out_name = d.join("test_data/decompress_out/2.txt");
         let out_name = out_name.to_str().unwrap();

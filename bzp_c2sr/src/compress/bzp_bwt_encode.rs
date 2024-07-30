@@ -213,9 +213,11 @@ fn bzp_update_flag(bwt: &mut Box<BzpBwtInfo>, l: i32, r: i32) {
 
 fn bzp_binary_lifting_sort(bwt: &mut Box<BzpBwtInfo>) {
     let mut ftab = [0; bzp_ascii_size!()];
+    println!("bwt.n_block = {:?}", bwt.n_block);
     for i in 0..bwt.n_block {
         ftab[bwt.block[i as usize] as usize] += 1;
     }
+    println!("ftab = {:?}", &ftab);
     for i in 1..bzp_ascii_size!() {
         ftab[i] += ftab[i - 1];
     }
@@ -263,6 +265,7 @@ fn bzp_binary_lifting_sort(bwt: &mut Box<BzpBwtInfo>) {
 
 
 pub fn bzp_block_sort_main(bwt: &mut Box<BzpBwtInfo>) {
+    println!("bwt.block = {:?}", &bwt.block[0..bwt.n_block as usize]);
     bzp_binary_lifting_sort(bwt);
     for i in 0..bwt.n_block {
         if bwt.sort_block[i as usize] == 0 {

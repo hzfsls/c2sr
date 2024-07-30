@@ -130,13 +130,25 @@ pub fn vos_sha256_last_padding(puc_data: &mut [u8], ui_len: u32, pst_ctx: &mut B
     };
 
     if ui_len >= sha256_block_size!() as u32 || ui_len + ui_blc_len as u32 >= sha256_block_size!() as u32 {
-        c2sr_memcpy(puc_block[ui_blc_len as usize..].as_mut(), &puc_data, (sha256_block_size!() - ui_blc_len) as usize);
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                puc_data.as_mut_ptr(),
+                puc_block[ui_blc_len as usize..].as_ptr() as *mut u8,
+                (sha256_block_size!() - ui_blc_len) as usize
+            );
+        }
         vos_sha256_compress_mul(pst_ctx, puc_block, 1);
         *pui_padding_len = (sha256_block_size!() - ui_blc_len) as u32;
         pst_ctx.block_len = 0;
         puc_block.fill(0);
     } else {
-        c2sr_memcpy(&mut puc_block[ui_blc_len as usize..], &puc_data, ui_len as usize);
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                puc_data.as_mut_ptr(),
+                puc_block[ui_blc_len as usize..].as_ptr() as *mut u8,
+                ui_len as usize
+            );
+        }
         pst_ctx.block_len += ui_len;
         return sha256_error!();
     }

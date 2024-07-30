@@ -290,6 +290,7 @@ fn bzp_compress_one_block(bwt: &mut Box<BzpBwtInfo>, mtf: &mut Box<BzpMtfInfo>, 
     if bwt.n_block > 0 {
         bzp_calculate_crc(bwt);
         bzp_block_sort_main(bwt);
+        println!("compress ori_ptr at here: {:x}", bwt.ori_ptr);
         bzp_mtf_reset(mtf);
         mtf.block = bwt.block.to_vec();
         mtf.map = bwt.sort_block.to_vec();
@@ -345,12 +346,24 @@ fn bzp_add_char_to_block(lasch: i32, num: i32, bwt: &mut Box<BzpBwtInfo>) {
         bzp_rlc_num_4!() => {
             bwt.block[bwt.n_block as usize] = lasch as u8;
             bwt.n_block += 1;
+            bwt.block[bwt.n_block as usize] = lasch as u8;
+            bwt.n_block += 1;
+            bwt.block[bwt.n_block as usize] = lasch as u8;
+            bwt.n_block += 1;
+            bwt.block[bwt.n_block as usize] = lasch as u8;
+            bwt.n_block += 1;
         }
         bzp_rlc_num_3!() => {
             bwt.block[bwt.n_block as usize] = lasch as u8;
             bwt.n_block += 1;
+            bwt.block[bwt.n_block as usize] = lasch as u8;
+            bwt.n_block += 1;
+            bwt.block[bwt.n_block as usize] = lasch as u8;
+            bwt.n_block += 1;
         }
         bzp_rlc_num_2!() => {
+            bwt.block[bwt.n_block as usize] = lasch as u8;
+            bwt.n_block += 1;
             bwt.block[bwt.n_block as usize] = lasch as u8;
             bwt.n_block += 1;
         }
@@ -412,6 +425,8 @@ fn bzp_process_data(bzp_info: &mut Box<BzpAlgorithmInfo>, is_last_data: bool) ->
     let out_data = &mut bzp_info.out_data;
     let bwt = &mut bzp_info.bwt;
 
+    println!("bwt.n_block = {}", bwt.n_block);
+
     bzpf.state = bzp_input_compress!();
     let mut ret = bzp_ok!();
     while bzpf.state != bzp_retuen_compress!() {
@@ -467,6 +482,7 @@ pub fn bzp_compress_stream(in_name: &str, out_name: &str, block_size: i32) -> i3
     if ret != bzp_ok!() {
         return ret;
     }
+    
     while !is_last_data {
         let in_stream = &mut bzp_info.compress_file.input;
         in_stream.n_buf = in_stream.file_ptr.as_mut().unwrap().read(&mut in_stream.buf).ok().unwrap() as i32;
