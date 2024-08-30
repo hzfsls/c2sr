@@ -271,6 +271,8 @@ pub fn bcd_clip(p_to_bcd: &mut [_BCD], p_from_bcd: &mut [_BCD], uc_size: u8, uc_
         return;
     }
 
+    i = 0;
+    j = uc_pos;
     while i < uc_len && i < uc_size && j < uc_size {
         if j % bcd_index_used_num!() == 0 {
             uc_char = (p_from_bcd[j as usize / bcd_index_used_num!()] & 0xF0) >> 4;
@@ -337,7 +339,8 @@ pub fn string_to_bcd(p_str: &mut [u8], p_bcd: &mut [u8], us_max_len: u16) -> u16
     if p_bcd.is_empty() || p_str.is_empty() {
         return 0;
     }
-
+    
+    i = 0;
     while i < us_max_len {
         if p_str[i as usize] == vos_null_byte!() {
             p_bcd[i as usize / bcd_index_used_num!()] = 0xFF;
