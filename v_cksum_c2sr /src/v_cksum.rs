@@ -85,7 +85,8 @@ macro_rules! vos_md5_put {
 macro_rules! fletcher_add {
     ($c0: expr, $c1: expr, $p_buf: expr) => {
         {
-            $c1 += $c0 + $p_buf[0] as i32;
+            $c0 += $p_buf[0] as i32;
+            $c1 += $c0;
             $p_buf = &mut $p_buf[1..];
         }
     };
@@ -156,12 +157,12 @@ pub fn vos_inet_cksum(p_addr: &mut [u8], ui_len: u32) -> u16 {
     let mut ui_sum: u32 = 0;
     let mut i_left_len: i32 = ui_len as i32;
     let mut b_one_byte_left: bool = false;
-    let mut auc_bytes_left: [u8; 2] = [0, 0];
+    let mut auc_bytes_left: [u8; one_short_byte_num!()] = [0, 0];
     let mut pus_word: &mut [u16];
     let mut p_addr_tmp = p_addr;
 
     if p_addr_tmp.is_empty() {
-        return !ui_sum as u16 & 0xffff;
+        return (!ui_sum as u16) & 0xffff;
     }
 
     if p_addr_tmp.as_ptr() as usize & 1 != 0 {
@@ -171,13 +172,13 @@ pub fn vos_inet_cksum(p_addr: &mut [u8], ui_len: u32) -> u16 {
         b_one_byte_left = true;
     }
 
-    pus_word = unsafe { std::slice::from_raw_parts_mut(p_addr_tmp.as_mut_ptr() as *mut u16, p_addr_tmp.len() / 2) };
-    while i_left_len >= 32 {
+    pus_word = unsafe { std::slice::from_raw_parts_mut(p_addr_tmp.as_mut_ptr() as *mut u16, (p_addr_tmp.len() + 1) / 2) };
+    while i_left_len >= vos_cycle_byte32_num!() {
         ui_sum += pus_word[0] as u32 + pus_word[1] as u32 + pus_word[2] as u32 + pus_word[3] as u32 +
             pus_word[4] as u32 + pus_word[5] as u32 + pus_word[6] as u32 + pus_word[7] as u32 +
             pus_word[8] as u32 + pus_word[9] as u32 + pus_word[10] as u32 + pus_word[11] as u32 +
             pus_word[12] as u32 + pus_word[13] as u32 + pus_word[14] as u32 + pus_word[15] as u32;
-        i_left_len -= 32;
+        i_left_len -= vos_cycle_byte32_num!();
         pus_word = &mut pus_word[16..];
     }
 
@@ -369,11 +370,11 @@ pub fn cks_md5_cksum_block(pv_data: &mut [u8], ul_data_len: u32,  ul_total_len: 
 
     ul_var1 = pui_tmp[0];
     pui_tmp = &mut pui_tmp[1..];
-    ul_var2 = pui_tmp[1];
+    ul_var2 = pui_tmp[0];
     pui_tmp = &mut pui_tmp[1..];
-    ul_var3 = pui_tmp[2];
+    ul_var3 = pui_tmp[0];
     pui_tmp = &mut pui_tmp[1..];
-    ul_var4 = pui_tmp[3];
+    ul_var4 = pui_tmp[0];
     
     while ul_d_len != 0 {
         pul_xp = aui_assist_arr.as_mut();
@@ -573,21 +574,21 @@ pub fn vos_md5_cksum(pv_data: &mut [u8], ul_data_len: u32, ul_total_len: u32, pv
         return;
     }
 
+    pul_tp = &mut aul_temp;
+
     if pul_init.is_empty() {
-        aul_temp[0] = vos_md5_a_init!();
-        aul_temp[1] = vos_md5_b_init!();
-        aul_temp[2] = vos_md5_c_init!();
-        aul_temp[3] = vos_md5_d_init!();
+        pul_tp[0] = vos_md5_a_init!();
+        pul_tp[1] = vos_md5_b_init!();
+        pul_tp[2] = vos_md5_c_init!();
+        pul_tp[3] = vos_md5_d_init!();
     } else {
-        aul_temp[0] = pul_init[0];
-        aul_temp[1] = pul_init[1];
-        aul_temp[2] = pul_init[2];
-        aul_temp[3] = pul_init[3];
+        pul_tp[0] = pul_init[0];
+        pul_tp[1] = pul_init[1];
+        pul_tp[2] = pul_init[2];
+        pul_tp[3] = pul_init[3];
     }
 
-    cks_md5_cksum_block(pv_data, ul_data_len, ul_total_len, 0, &mut aul_temp);
-
-    pul_tp = &mut aul_temp;
+    cks_md5_cksum_block(pv_data, ul_data_len, ul_total_len, 0, &mut pul_tp);
 
     puc_dp = pv_digest;
     vos_md5_put!(pul_tp[0], puc_dp);
