@@ -83,7 +83,7 @@ pub fn bcd_cat(p_to_bcd: &mut [_BCD], p_from_bcd: &mut [_BCD], uc_size: u8) -> u
     uc_len
 }
 
-pub fn bcd_value(p_bcd: &[_BCD], uc_pos: u8) -> u8 {
+pub fn bcd_value(p_bcd: &mut [_BCD], uc_pos: u8) -> u8 {
     let uc_char: u8;
 
     if p_bcd.is_empty() {
@@ -99,7 +99,7 @@ pub fn bcd_value(p_bcd: &[_BCD], uc_pos: u8) -> u8 {
     uc_char & 0x0F
 }
 
-pub fn bcd_len(p_bcd: &[_BCD], uc_max_len: u8) -> u8 {
+pub fn bcd_len(p_bcd: &mut [_BCD], uc_max_len: u8) -> u8 {
     let mut i: u8;
 
     if p_bcd.is_empty() {
@@ -108,12 +108,16 @@ pub fn bcd_len(p_bcd: &[_BCD], uc_max_len: u8) -> u8 {
 
     for i in 0..uc_max_len {
         if i % bcd_index_used_num!() == 0 {
-            if p_bcd[i as usize / bcd_index_used_num!()] & 0xF0 == 0xF0 {
-                return i;
+            if i as usize / bcd_index_used_num!() < p_bcd.len() {
+                if p_bcd[i as usize / bcd_index_used_num!()] & 0xF0 == 0xF0 {
+                    return i;
+                }
             }
         } else {
-            if p_bcd[i as usize / bcd_index_used_num!()] & 0x0F == 0x0F {
-                return i;
+            if i as usize / bcd_index_used_num!() < p_bcd.len() {
+                if p_bcd[i as usize / bcd_index_used_num!()] & 0x0F == 0x0F {
+                    return i;
+                }
             }
         }
     }
@@ -121,7 +125,7 @@ pub fn bcd_len(p_bcd: &[_BCD], uc_max_len: u8) -> u8 {
     uc_max_len
 }
 
-pub fn bcd_compare(p_bcd1: &[_BCD], p_bcd2: &mut [_BCD], uc_size: u8) -> i32 {
+pub fn bcd_compare(p_bcd1: &mut [_BCD], p_bcd2: &mut [_BCD], uc_size: u8) -> i32 {
     let mut i: u8;
     let mut uc_len1: u8;
     let mut uc_len2: u8;
@@ -182,7 +186,7 @@ pub fn bcd_compare(p_bcd1: &[_BCD], p_bcd2: &mut [_BCD], uc_size: u8) -> i32 {
     0
 }
 
-pub fn bcd_copy(p_to_bcd: &mut [_BCD], p_from_bcd: &[_BCD], uc_size: u8) {
+pub fn bcd_copy(p_to_bcd: &mut [_BCD], p_from_bcd: &mut [_BCD], uc_size: u8) {
     let mut i: u8;
 
     if p_to_bcd.is_empty() || p_from_bcd.is_empty() {
@@ -209,7 +213,7 @@ pub fn bcd_copy(p_to_bcd: &mut [_BCD], p_from_bcd: &[_BCD], uc_size: u8) {
     }
 }
 
-pub fn bcd_minus(p_bcd1: &mut [_BCD], p_bcd2: &mut[_BCD], uc_size: u8, psi_result: &mut i32) -> u32 {
+pub fn bcd_minus(p_bcd1: &mut [_BCD], p_bcd2: &mut [_BCD], uc_size: u8, psi_result: &mut i32) -> u32 {
     let mut si_val1: i32;
     let mut si_val2: i32;
     let mut i: u8;
@@ -432,16 +436,17 @@ pub fn dec_to_bcd(ui_num: u32, uc_digits: u8, puc_str: &mut [u8]) -> u8 {
         }
 
         if uc_left_flag != 0 {
-            puc_ptr[i as usize] = (uc_temp & 0x0F) << 4;
+            puc_ptr[0] = (uc_temp & 0x0F) << 4;
             uc_left_flag = 0;
         } else {
-            puc_ptr[i as usize] |= uc_temp & 0x0F;
+            puc_ptr[0] |= uc_temp & 0x0F;
+            puc_ptr = &mut puc_ptr[1..];
             uc_left_flag = 1;
         }
     }
 
     if uc_left_flag == 0 {
-        puc_ptr[uc_digits as usize] |= 0x0F;
+        puc_ptr[0] |= 0x0F;
     }
 
     uc_digits
@@ -537,6 +542,7 @@ pub fn new_bcd_clip(p_to_bcd: &mut [_BCD], p_from_bcd: &mut [_BCD], uc_dest_bcd_
             p_to_bcd[i as usize / 2] |= uc_char;
         }
 
+        i += 1;
         j += 1;
     }
 

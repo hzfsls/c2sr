@@ -164,12 +164,16 @@ pub fn vos_bitmapffs(ui_val: u32) -> u32 {
     ui_num
 }
 
-pub fn vos_bitmapffb(aui_bitmap: &mut [u32], max_val: u32) -> u32 {
+pub fn vos_bitmapffb(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
     let mut uix = 0;
     let mut ui_val;
-    let mut pui_bmp_tmp = aui_bitmap;
+    let mut pui_bmp_tmp = pui_bmp;
 
-    while uix < max_val {
+    if pui_bmp_tmp.is_empty() {
+        return ui_max_val;
+    }
+
+    while uix < ui_max_val {
         ui_val = pui_bmp_tmp[0];
         pui_bmp_tmp = &mut pui_bmp_tmp[1..];
         if ui_val != 0 {
@@ -177,19 +181,23 @@ pub fn vos_bitmapffb(aui_bitmap: &mut [u32], max_val: u32) -> u32 {
         }
         uix += (std::mem::size_of_val(&pui_bmp_tmp[0]) << 3) as u32;
     }
-    if uix > max_val {
-        uix = max_val;
+    if uix > ui_max_val {
+        uix = ui_max_val;
     }
 
     uix
 }
 
-pub fn vos_bitmapff0b(aui_bitmap: &mut [u32], max_val: u32) -> u32 {
+pub fn vos_bitmapff0b(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
     let mut uix = 0;
     let mut ui_val;
-    let mut pui_bmp_tmp = aui_bitmap;
+    let mut pui_bmp_tmp = pui_bmp;
 
-    while uix < max_val {
+    if pui_bmp_tmp.is_empty() {
+        return ui_max_val;
+    }
+
+    while uix < ui_max_val {
         ui_val = pui_bmp_tmp[0];
         pui_bmp_tmp = &mut pui_bmp_tmp[1..];
         ui_val = !ui_val;
@@ -198,8 +206,8 @@ pub fn vos_bitmapff0b(aui_bitmap: &mut [u32], max_val: u32) -> u32 {
         }
         uix += (std::mem::size_of_val(&pui_bmp_tmp[0]) << 3) as u32;
     }
-    if uix > max_val {
-        uix = max_val;
+    if uix > ui_max_val {
+        uix = ui_max_val;
     }
 
     uix
