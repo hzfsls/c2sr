@@ -1,20 +1,29 @@
 macro_rules! vos_ok { () => { 0 }; }
+pub(crate) use vos_ok;
 
 macro_rules! vos_errno_fail { () => { 0xFFFFFFFF }; }
+pub(crate) use vos_errno_fail;
 
 macro_rules! vos_errno_inval { () => { 22 }; }
+pub(crate) use vos_errno_inval;
 
 macro_rules! vos_fp_value_eq { () => { 0 }; }
+pub(crate) use vos_fp_value_eq;
 
 macro_rules! vos_fp_value_gt { () => { 1 }; }
+pub(crate) use vos_fp_value_gt;
 
 macro_rules! vos_fp_value_lt { () => { 2 }; }
+pub(crate) use vos_fp_value_lt;
 
 macro_rules! vos_errno_softfp_nan_or_inf { () => { 3 }; }
+pub(crate) use vos_errno_softfp_nan_or_inf;
 
 macro_rules! vos_fp_max_float_str_len { () => { 64 }; }
+pub(crate) use vos_fp_max_float_str_len;
 
 macro_rules! vos_fp_max_double_str_len { () => { 320 }; }
+pub(crate) use vos_fp_max_double_str_len;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -67,27 +76,6 @@ impl VosFpFloatS {
         self.f_value = f32::from_bits(f_value_bits);
     }
 }
-
-// ```c
-// typedef union tagFpDouble {
-//     VOS_DOUBLE dValue;
-//     struct {
-// #if VOS_BYTE_ORDER == VOS_BIG_ENDIAN
-//         VOS_UINT32 uiSign : 1;
-//         VOS_UINT32 uiExp : 11;
-//         VOS_UINT32 uiFrac1 : 20;
-//         VOS_UINT32 uiFrac0 : 32;
-// #else
-//         VOS_UINT32 uiFrac0 : 32;
-//         VOS_UINT32 uiFrac1 : 20;
-//         VOS_UINT32 uiExp : 11;
-//         VOS_UINT32 uiSign : 1;
-// #endif
-//     } stBit;
-// } VOS_FP_DOUBLE_S;
-// ```
-// // Translate from C to Rust:
-// ```rust
 
 pub struct VosFpDoubleS {
     pub d_value: f64
@@ -203,9 +191,6 @@ pub fn vos_soft_fp_str_2_float_ieee754(ppsc_point: &mut String, pdl_value: &mut 
 
     if ui_ret == vos_ok!() {
         soft_fp_get_str_val!(ui_expo, psc_point_tmp);
-        println!("ui_expo: {}", ui_expo);
-        println!("factor: {}", factor);
-
         loop {
             if (ui_expo & 0x1) != 0 {
                 value *= factor;
@@ -223,7 +208,7 @@ pub fn vos_soft_fp_str_2_float_ieee754(ppsc_point: &mut String, pdl_value: &mut 
     ui_ret
 }
 
-pub fn vos_soft_fp_str_2_float(psc_souse: &String, ppsc_endptr: Option<&mut String>) -> f64 {
+pub fn vos_soft_fp_str_2_float(psc_souse: &mut String, ppsc_endptr: Option<&mut String>) -> f64 {
     let mut psc_point = psc_souse.chars().peekable();
     let mut value: f64 = 0.0;
     let mut si_sign: i32 = 0;
@@ -243,7 +228,7 @@ pub fn vos_soft_fp_str_2_float(psc_souse: &String, ppsc_endptr: Option<&mut Stri
     soft_fp_get_str_val!(i_value, psc_point);
     value = i_value as f64;
 
-    if *psc_point.peek().unwrap() == '.' {
+    if psc_point.peek().is_some() && *psc_point.peek().unwrap() == '.' {
         factor = 1.0;
         psc_point.next();
         while soft_fp_check_of_num_range!(psc_point) {
@@ -253,7 +238,7 @@ pub fn vos_soft_fp_str_2_float(psc_souse: &String, ppsc_endptr: Option<&mut Stri
         }
     }
 
-    if psc_point.peek().unwrap().to_ascii_lowercase() == 'e' {
+    if psc_point.peek().is_some() && psc_point.peek().unwrap().to_ascii_lowercase() == 'e' {
         let mut psc_str = psc_point.clone().collect::<String>();
         ui_ret = vos_soft_fp_str_2_float_ieee754(&mut psc_str, &mut value);
         if ui_ret != vos_ok!() {
@@ -268,7 +253,7 @@ pub fn vos_soft_fp_str_2_float(psc_souse: &String, ppsc_endptr: Option<&mut Stri
     return if si_sign == '-' as i32 { -value } else { value };
 }
 
-pub fn vos_soft_fp_s_eva(psc_v1: &String, pst_reasult: &mut Box<VosFpFloatS>) -> u32 {
+pub fn vos_soft_fp_s_eva(psc_v1: &mut String, pst_reasult: &mut Box<VosFpFloatS>) -> u32 {
     pst_reasult.f_value = vos_soft_fp_str_2_float(psc_v1, None) as f32;
     vos_ok!()
 }
@@ -366,7 +351,7 @@ pub fn vos_soft_fp_d_cmp(pst_v1: &mut Box<VosFpDoubleS>, pst_v2: &mut Box<VosFpD
     vos_fp_value_eq!()
 }
 
-pub fn  vos_soft_fp_d_eva(psc_v1: &String, pst_reasult: &mut Box<VosFpDoubleS>) -> u32 {
+pub fn  vos_soft_fp_d_eva(psc_v1: &mut String, pst_reasult: &mut Box<VosFpDoubleS>) -> u32 {
     pst_reasult.d_value = vos_soft_fp_str_2_float(psc_v1, None) as f64;
     vos_ok!()
 }

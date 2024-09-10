@@ -1,34 +1,40 @@
 macro_rules! bitmap_bits_per_vos_uint32 { () => { 32 }; }
+pub(crate) use bitmap_bits_per_vos_uint32;
 
 macro_rules! bitmap_vos_uint32_num {
     ($max_value:expr) => {
         ($max_value / bitmap_bits_per_vos_uint32!()) + if $max_value % bitmap_bits_per_vos_uint32!() != 0 { 1 } else { 0 }
     };
 }
+pub(crate) use bitmap_vos_uint32_num;
 
 macro_rules! bitmap_idx_which_uint32 {
     ($value:expr) => {
         $value / bitmap_bits_per_vos_uint32!()
     };
 }
+pub(crate) use bitmap_idx_which_uint32;
 
 macro_rules! bitmap_idx_mod_uint32 {
     ($value:expr) => {
         $value % bitmap_bits_per_vos_uint32!()
     };
 }
+pub(crate) use bitmap_idx_mod_uint32;
 
 macro_rules! bitmap_idx_mask_uint32 {
     ($value:expr) => {
         1 << bitmap_idx_mod_uint32!($value)
     };
 }
+pub(crate) use bitmap_idx_mask_uint32;
 
 macro_rules! bitmap_idx_mask_uint32 {
     ($l:expr) => {
         1 << $l
     };
 }
+pub(crate) use bitmap_idx_mask_uint32;
 
 macro_rules! bitmap_idx_mask_low_uint32 {
     ($l:expr) => {
@@ -39,54 +45,63 @@ macro_rules! bitmap_idx_mask_low_uint32 {
         }
     };
 }
+pub(crate) use bitmap_idx_mask_low_uint32;
 
 macro_rules! vos_lw_bit_set {
     ($f:expr, $b:expr) => {
         $f |= $b
     };
 }
+pub(crate) use vos_lw_bit_set;
 
 macro_rules! vos_lw_bit_unset {
     ($f:expr, $b:expr) => {
         $f &= !$b
     };
 }
+pub(crate) use vos_lw_bit_unset;
 
 macro_rules! vos_lw_bit_test {
     ($f:expr, $b:expr) => {
         0 != ($f & $b)
     };
 }
+pub(crate) use vos_lw_bit_test;
 
 macro_rules! vos_lw_bitval_set {
     ($f:expr, $v:expr) => {
         $f |= vos_lw_bit_mask!($v)
     };
 }
+pub(crate) use vos_lw_bitval_set;
 
 macro_rules! vos_lw_bitval_unset {
     ($f:expr, $v:expr) => {
         $f &= !vos_lw_bit_mask!($v)
     };
 }
+pub(crate) use vos_lw_bitval_unset;
 
 macro_rules! vos_lw_bitval_test {
     ($f:expr, $v:expr) => {
         ($f & vos_lw_bit_mask!($v)) != 0
     };
 }
+pub(crate) use vos_lw_bitval_test;
 
 macro_rules! vos_lw_bit_range_get {
     ($zone:expr, $bit_begin:expr, $bit_len:expr) => {
         ($zone >> $bit_begin) & vos_lw_bit_mask_low!($bit_len)
     };
 }
+pub(crate) use vos_lw_bit_range_get;
 
 macro_rules! vos_lw_bit_range_clr {
     ($zone:expr, $bit_begin:expr, $bit_len:expr) => {
         $zone &= !(vos_lw_bit_mask_low!($bit_len) << $bit_begin)
     };
 }
+pub(crate) use vos_lw_bit_range_clr;
 
 macro_rules! vos_lw_bit_range_set {
     ($zone:expr, $bit_begin:expr, $bit_len:expr, $val:expr) => {
@@ -94,50 +109,70 @@ macro_rules! vos_lw_bit_range_set {
         $zone |= $val << $bit_begin
     };
 }
+pub(crate) use vos_lw_bit_range_set;
 
 macro_rules! vos_lw_bitmap_define {
     ($aui_bitmap:ident, $max_value:expr) => {
         let mut $aui_bitmap = [0u32; bitmap_vos_uint32_num!($max_value)];
     };
 }
+pub(crate) use vos_lw_bitmap_define;
 
 macro_rules! vos_lw_bitmap_set {
     ($aui_bitmap:expr, $value:expr) => {
         $aui_bitmap[bitmap_idx_which_uint32!($value)] |= bitmap_idx_mask_uint32!($value)
     };
 }
+pub(crate) use vos_lw_bitmap_set;
 
 macro_rules! vos_lw_bitmap_unset {
     ($aui_bitmap:expr, $value:expr) => {
         $aui_bitmap[bitmap_idx_which_uint32!($value)] &= !bitmap_idx_mask_uint32!($value)
     };
 }
+pub(crate) use vos_lw_bitmap_unset;
 
 macro_rules! vos_lw_bitmap_test {
     ($aui_bitmap:expr, $value:expr) => {
         (1 & ($aui_bitmap[bitmap_idx_which_uint32!($value)] >> bitmap_idx_mod_uint32!($value))) != 0
     }
 }
+pub(crate) use vos_lw_bitmap_test;
 
 macro_rules! vos_lw_bitmap_first1bitget {
     ($aui_bitmap:expr, $max_val:expr) => {
         vos_bitmapffb($aui_bitmap, $max_val)
     };
 }
+pub(crate) use vos_lw_bitmap_first1bitget;
 
 macro_rules! vos_lw_bitmap_first0bitget {
     ($aui_bitmap:expr, $max_val:expr) => {
         vos_bitmapff0b($aui_bitmap, $max_val)
     };
 }
+pub(crate) use vos_lw_bitmap_first0bitget;
 
 macro_rules! vos_bitmap_byte_bits { () => { 8 }; }
+pub(crate) use vos_bitmap_byte_bits;
+
 macro_rules! vos_bitmap_byte_shift_step { () => { 3 }; }
+pub(crate) use vos_bitmap_byte_shift_step;
+
 macro_rules! vos_bitmap_byte_bit_flag { () => { 0x80 }; }
+pub(crate) use vos_bitmap_byte_bit_flag;
+
 macro_rules! vos_bitmap_invalid_index { () => { 0xFFFFFFFF }; }
+pub(crate) use vos_bitmap_invalid_index;
+
 macro_rules! vos_bitmap_double_byte_bits { () => { 16 }; }
+pub(crate) use vos_bitmap_double_byte_bits;
+
 macro_rules! vos_bitmap_single_floating_point_fraction { () => { 23 }; }
+pub(crate) use vos_bitmap_single_floating_point_fraction;
+
 macro_rules! vos_bitmap_single_floating_point_bias { () => { 0x7F }; }
+pub(crate) use vos_bitmap_single_floating_point_bias;
 
 pub fn vos_bitmapffs(ui_val: u32) -> u32 {
     let mut ui_num = 0;
@@ -214,6 +249,7 @@ pub fn vos_bitmapff0b(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
 }
 
 macro_rules! vos_null_byte { () => { 0xFF }; }
+pub(crate) use vos_null_byte;
 
 pub fn vos_reverse_byte_bits(uc_byte: u8) -> u8 {
     ((((((uc_byte as u32 * 0x0802) & 0x22110) | ((uc_byte as u32 * 0x8020) & 0x88440)) * 0x10101) >>

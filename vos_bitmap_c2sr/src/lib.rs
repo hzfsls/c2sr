@@ -32,4 +32,19 @@ mod tests {
         assert_eq!(vos_bitmapff0b(&mut puiBmp, 1), 0);
         assert_eq!(vos_bitmapff0b(&mut puiBmp1, 1), 1);
     }
+
+    // pub fn vos_reverse_byte_bits(uc_byte: u8) -> u8 {
+    //     ((((((uc_byte as u32 * 0x0802) & 0x22110) | ((uc_byte as u32 * 0x8020) & 0x88440)) * 0x10101) >>
+    //         vos_bitmap_double_byte_bits!()) & vos_null_byte!()) as u8
+    // }
+    // generate test for vos_reverse_byte_bits
+
+    #[test]
+    fn test_vos_reverse_byte_bits() {
+        assert_eq!(vos_reverse_byte_bits(0b00000000), 0b00000000);
+        assert_eq!(vos_reverse_byte_bits(0b00000001), 0b10000000);
+        assert_eq!(vos_reverse_byte_bits(0b00000010), 0b01000000);
+        assert_eq!(vos_reverse_byte_bits(0b00000011), 0b11000000);
+        assert_eq!(vos_reverse_byte_bits(0b10110011), 0b11001101);
+    }
 }
