@@ -1,107 +1,180 @@
 macro_rules! bitmap_bits_per_vos_uint32 { () => { 32 }; }
 pub(crate) use bitmap_bits_per_vos_uint32;
 
+
+// [begin] bitmap_m_001
+
 macro_rules! bitmap_vos_uint32_num {
     ($max_value:expr) => {
         ($max_value / bitmap_bits_per_vos_uint32!()) + if $max_value % bitmap_bits_per_vos_uint32!() != 0 { 1 } else { 0 }
     };
 }
+
+// [end]
+
 pub(crate) use bitmap_vos_uint32_num;
+
+// [begin] bitmap_m_002
 
 macro_rules! bitmap_idx_which_uint32 {
     ($value:expr) => {
         $value / bitmap_bits_per_vos_uint32!()
     };
 }
+
+// [end]
+
 pub(crate) use bitmap_idx_which_uint32;
+
+// [begin] bitmap_m_003
 
 macro_rules! bitmap_idx_mod_uint32 {
     ($value:expr) => {
         $value % bitmap_bits_per_vos_uint32!()
     };
 }
+
+// [end]
+
 pub(crate) use bitmap_idx_mod_uint32;
+
+// [begin] bitmap_m_004
 
 macro_rules! bitmap_idx_mask_uint32 {
     ($value:expr) => {
         1 << bitmap_idx_mod_uint32!($value)
     };
 }
+
+// [end]
+
 pub(crate) use bitmap_idx_mask_uint32;
 
-macro_rules! bitmap_idx_mask_uint32 {
+// [begin] bitmap_m_005
+
+macro_rules! vos_lw_bit_mask {
     ($l:expr) => {
         1 << $l
     };
 }
-pub(crate) use bitmap_idx_mask_uint32;
 
-macro_rules! bitmap_idx_mask_low_uint32 {
+// [end]
+
+pub(crate) use vos_lw_bit_mask;
+
+// [begin] bitmap_m_006
+
+macro_rules! vos_lw_bit_mask_low {
     ($l:expr) => {
         if $l < bitmap_bits_per_vos_uint32!() {
             (1 << $l) - 1
         } else {
-            0xFFFFFFFF
+            0xffffffff as u32
         }
     };
 }
-pub(crate) use bitmap_idx_mask_low_uint32;
+
+// [end]
+
+pub(crate) use vos_lw_bit_mask_low;
+
+// [begin] bitmap_m_007
 
 macro_rules! vos_lw_bit_set {
     ($f:expr, $b:expr) => {
         $f |= $b
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bit_set;
+
+// [begin] bitmap_m_008
 
 macro_rules! vos_lw_bit_unset {
     ($f:expr, $b:expr) => {
         $f &= !$b
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bit_unset;
+
+// [begin] bitmap_m_009
 
 macro_rules! vos_lw_bit_test {
     ($f:expr, $b:expr) => {
         0 != ($f & $b)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bit_test;
+
+// [begin] bitmap_m_010
 
 macro_rules! vos_lw_bitval_set {
     ($f:expr, $v:expr) => {
         $f |= vos_lw_bit_mask!($v)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitval_set;
+
+// [begin] bitmap_m_011
 
 macro_rules! vos_lw_bitval_unset {
     ($f:expr, $v:expr) => {
         $f &= !vos_lw_bit_mask!($v)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitval_unset;
+
+// [begin] bitmap_m_012
 
 macro_rules! vos_lw_bitval_test {
     ($f:expr, $v:expr) => {
         ($f & vos_lw_bit_mask!($v)) != 0
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitval_test;
+
+// [begin] bitmap_m_013
 
 macro_rules! vos_lw_bit_range_get {
     ($zone:expr, $bit_begin:expr, $bit_len:expr) => {
         ($zone >> $bit_begin) & vos_lw_bit_mask_low!($bit_len)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bit_range_get;
+
+// [begin] bitmap_m_014
 
 macro_rules! vos_lw_bit_range_clr {
     ($zone:expr, $bit_begin:expr, $bit_len:expr) => {
         $zone &= !(vos_lw_bit_mask_low!($bit_len) << $bit_begin)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bit_range_clr;
+
+// [begin] bitmap_m_015
 
 macro_rules! vos_lw_bit_range_set {
     ($zone:expr, $bit_begin:expr, $bit_len:expr, $val:expr) => {
@@ -109,48 +182,81 @@ macro_rules! vos_lw_bit_range_set {
         $zone |= $val << $bit_begin
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bit_range_set;
+
+// [begin] bitmap_m_016
 
 macro_rules! vos_lw_bitmap_define {
     ($aui_bitmap:ident, $max_value:expr) => {
         let mut $aui_bitmap = [0u32; bitmap_vos_uint32_num!($max_value)];
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitmap_define;
+
+// [begin] bitmap_m_017
 
 macro_rules! vos_lw_bitmap_set {
     ($aui_bitmap:expr, $value:expr) => {
-        $aui_bitmap[bitmap_idx_which_uint32!($value)] |= bitmap_idx_mask_uint32!($value)
+        $aui_bitmap[bitmap_idx_which_uint32!($value) as usize] |= bitmap_idx_mask_uint32!($value)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitmap_set;
+
+// [begin] bitmap_m_018
 
 macro_rules! vos_lw_bitmap_unset {
     ($aui_bitmap:expr, $value:expr) => {
-        $aui_bitmap[bitmap_idx_which_uint32!($value)] &= !bitmap_idx_mask_uint32!($value)
+        $aui_bitmap[bitmap_idx_which_uint32!($value) as usize] &= !bitmap_idx_mask_uint32!($value)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitmap_unset;
+
+// [begin] bitmap_m_019
 
 macro_rules! vos_lw_bitmap_test {
     ($aui_bitmap:expr, $value:expr) => {
-        (1 & ($aui_bitmap[bitmap_idx_which_uint32!($value)] >> bitmap_idx_mod_uint32!($value))) != 0
+        (1 & ($aui_bitmap[bitmap_idx_which_uint32!($value) as usize] >> bitmap_idx_mod_uint32!($value))) != 0
     }
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitmap_test;
+
+// [begin] bitmap_m_020
 
 macro_rules! vos_lw_bitmap_first1bitget {
     ($aui_bitmap:expr, $max_val:expr) => {
         vos_bitmapffb($aui_bitmap, $max_val)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitmap_first1bitget;
+
+// [begin] bitmap_m_021
 
 macro_rules! vos_lw_bitmap_first0bitget {
     ($aui_bitmap:expr, $max_val:expr) => {
         vos_bitmapff0b($aui_bitmap, $max_val)
     };
 }
+
+// [end]
+
 pub(crate) use vos_lw_bitmap_first0bitget;
 
 macro_rules! vos_bitmap_byte_bits { () => { 8 }; }
@@ -173,6 +279,8 @@ pub(crate) use vos_bitmap_single_floating_point_fraction;
 
 macro_rules! vos_bitmap_single_floating_point_bias { () => { 0x7F }; }
 pub(crate) use vos_bitmap_single_floating_point_bias;
+
+// [begin] bitmap_f_001
 
 pub fn vos_bitmapffs(ui_val: u32) -> u32 {
     let mut ui_num = 0;
@@ -199,6 +307,10 @@ pub fn vos_bitmapffs(ui_val: u32) -> u32 {
     ui_num
 }
 
+// [end]
+
+// [begin] bitmap_f_002
+
 pub fn vos_bitmapffb(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
     let mut uix = 0;
     let mut ui_val;
@@ -222,6 +334,10 @@ pub fn vos_bitmapffb(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
 
     uix
 }
+
+// [end]
+
+// [begin] bitmap_f_003
 
 pub fn vos_bitmapff0b(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
     let mut uix = 0;
@@ -248,13 +364,21 @@ pub fn vos_bitmapff0b(pui_bmp: &mut [u32], ui_max_val: u32) -> u32 {
     uix
 }
 
+// [end]
+
 macro_rules! vos_null_byte { () => { 0xFF }; }
 pub(crate) use vos_null_byte;
+
+// [begin] bitmap_f_004
 
 pub fn vos_reverse_byte_bits(uc_byte: u8) -> u8 {
     ((((((uc_byte as u32 * 0x0802) & 0x22110) | ((uc_byte as u32 * 0x8020) & 0x88440)) * 0x10101) >>
         vos_bitmap_double_byte_bits!()) & vos_null_byte!()) as u8
 }
+
+// [end]
+
+// [begin] bitmap_f_005
 
 pub fn vos_bit_map_byte_get_low_free(uc_byte: u8) -> u32 {
     let mut ui_bit_free_cnt;
@@ -268,6 +392,10 @@ pub fn vos_bit_map_byte_get_low_free(uc_byte: u8) -> u32 {
     ui_bit_free_cnt = (f_byte.to_bits() >> vos_bitmap_single_floating_point_fraction!()) - vos_bitmap_single_floating_point_bias!();
     return ui_bit_free_cnt;
 }
+
+// [end]
+
+// [begin] bitmap_f_006
 
 pub fn vos_bit_map_get_free(puc_bitmap: &mut [u8], ui_bitmap_size: u32) -> u32 {
     let mut ui_get_index = vos_bitmap_invalid_index!();
@@ -294,18 +422,27 @@ pub fn vos_bit_map_get_free(puc_bitmap: &mut [u8], ui_bitmap_size: u32) -> u32 {
     ui_get_index
 }
 
+// [end]
+
 macro_rules! vos_ok { () => { 0 }; }
+pub(crate) use vos_ok;
 
 macro_rules! vos_error { () => { !0 }; }
+pub(crate) use vos_error;
 
 macro_rules! vos_error_nodata { () => { 60 }; }
+pub(crate) use vos_error_nodata;
+
+macro_rules! vos_errno_inval { () => { 22 }; }
+pub(crate) use vos_errno_inval;
+
+// [begin] bitmap_f_007
 
 pub fn vos_bit_map_set(puc_bitmap: &mut [u8], ui_bitmap_size: u32, ui_index: u32) -> u32 {
     let mut pc_bit_map_byte_set;
     let mut ui_bit_index = ui_index % vos_bitmap_byte_bits!();
     let mut ui_byte_index = ui_index / vos_bitmap_byte_bits!();
     let mut uc_bit_set_flag;
-
     if puc_bitmap.is_empty() || ui_byte_index >= ui_bitmap_size {
         return vos_error!();
     }
@@ -317,6 +454,10 @@ pub fn vos_bit_map_set(puc_bitmap: &mut [u8], ui_bitmap_size: u32, ui_index: u32
 
     vos_ok!()
 }
+
+// [end]
+
+// [begin] bitmap_f_008
 
 pub fn vos_bit_map_unset(puc_bitmap: &mut [u8], ui_bitmap_size: u32, ui_index: u32) -> u32 {
     let mut pc_bit_map_byte_set;
@@ -336,40 +477,46 @@ pub fn vos_bit_map_unset(puc_bitmap: &mut [u8], ui_bitmap_size: u32, ui_index: u
     vos_ok!()
 }
 
+// [end]
+
+// [begin] bitmap_f_009
+
 pub fn vos_bit_map_byte_set(puc_byte: &mut u8, uc_start: u8, uc_end: u8) {
     let uc_byte_set_mask = ((0xFF >> uc_start) & (0xFF << (vos_bitmap_byte_bits!() - 1 - uc_end))) as u8;
     *puc_byte |= uc_byte_set_mask;
 }
+
+// [end]
+
+// [begin] bitmap_f_010
 
 pub fn vos_bit_map_byte_unset(puc_byte: &mut u8, uc_start: u8, uc_end: u8) {
     let uc_byte_unset_mask = !(((0xFF >> uc_start) & (0xFF << (vos_bitmap_byte_bits!() - 1 - uc_end))) as u8);
     *puc_byte &= uc_byte_unset_mask;
 }
 
+// [end]
+
+// [begin] bitmap_f_011
+
 pub fn vos_bit_map_byte_test(puc_byte: u8, uc_start: u8, uc_end: u8) -> bool {
     let uc_byte_test_mask = ((0xFF >> uc_start) & (0xFF << (vos_bitmap_byte_bits!() - 1 - uc_end))) as u8;
     (uc_byte_test_mask & puc_byte) == 0
 }
 
+// [end]
+
+// [begin] bitmap_f_012
+
 pub fn vos_bit_map_byte_segment_test(puc_byte_seg: &mut [u8], ui_seg_len: u32) -> bool {
-    if puc_byte_seg.is_empty() {
-        return false;
-    }
-
-    if puc_byte_seg[0] == 0 {
-        return false;
-    }
-
-    for i in 1..ui_seg_len {
-        if puc_byte_seg[i as usize] != puc_byte_seg[(i - 1) as usize] {
-            return false;
-        }
-    }
-
-    true
+    (puc_byte_seg[0] == 0) && (puc_byte_seg[1..].iter().all(|&x| x == puc_byte_seg[0]))
 }
 
-pub fn vos_bit_map_array_set(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_index: u32, ui_array_size: u32) -> u32 {
+// [end]
+
+// [begin] bitmap_f_013
+
+pub fn vos_bit_map_array_set(puc_bitmap: &mut [u8], ui_bit_map_bit_size: u32, ui_index: u32, ui_array_size: u32) -> u32 {
     let ui_byte_head = ui_index / vos_bitmap_byte_bits!();
     let ui_byte_head_next = ui_byte_head + 1;
     let ui_byte_end = (ui_index + ui_array_size - 1) / vos_bitmap_byte_bits!();
@@ -378,8 +525,8 @@ pub fn vos_bit_map_array_set(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_
     let uc_bit_head_index = (ui_index % vos_bitmap_byte_bits!()) as u8;
     let uc_bit_end_index = ((ui_index + ui_array_size - 1) % vos_bitmap_byte_bits!()) as u8;
 
-    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_index + ui_array_size > ui_bitmap_bit_size {
-        return vos_error!();
+    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_index + ui_array_size > ui_bit_map_bit_size {
+        return vos_errno_inval!();
     }
 
     if ui_byte_head == ui_byte_end {
@@ -391,13 +538,49 @@ pub fn vos_bit_map_array_set(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_
     vos_bit_map_byte_set(&mut puc_bitmap[ui_byte_end as usize], 0, uc_bit_end_index);
 
     if ui_byte_end_prev >= ui_byte_head_next {
-        puc_bitmap[ui_byte_head_next as usize..(ui_byte_head_next + ui_byte_len) as usize].fill(0);
+        puc_bitmap[ui_byte_head_next as usize..(ui_byte_head_next + ui_byte_len) as usize].fill(0xff);
     }
 
     vos_ok!()
 }
 
-pub fn vos_bit_map_array_test(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_index: u32, ui_array_size: u32) -> bool {
+// [end]
+
+// [begin] bitmap_f_014
+
+pub fn vos_bit_map_array_unset(puc_bitmap: &mut [u8], ui_bit_map_bit_size: u32, ui_index: u32, ui_array_size: u32) -> u32 {
+    let ui_byte_start = ui_index / vos_bitmap_byte_bits!();
+    let ui_byte_end = (ui_index + ui_array_size - 1) / vos_bitmap_byte_bits!();
+    let ui_byte_start_next = ui_byte_start + 1;
+    let ui_byte_end_prev = ui_byte_end - 1;
+    let ui_byte_seg_size = ui_byte_end_prev - ui_byte_start_next + 1;
+    let uc_bit_start_index = (ui_index % vos_bitmap_byte_bits!()) as u8;
+    let uc_bit_end_index = ((ui_index + ui_array_size - 1) % vos_bitmap_byte_bits!()) as u8;
+
+    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_bit_map_bit_size - ui_array_size > ui_bit_map_bit_size || ui_index > ui_bit_map_bit_size - ui_array_size {
+        return vos_errno_inval!();
+    }
+
+    if ui_byte_start == ui_byte_end {
+        vos_bit_map_byte_unset(&mut puc_bitmap[ui_byte_start as usize], uc_bit_start_index, uc_bit_end_index);
+        return vos_ok!();
+    }
+
+    vos_bit_map_byte_unset(&mut puc_bitmap[ui_byte_start as usize], uc_bit_start_index, vos_bitmap_byte_bits!() - 1);
+    vos_bit_map_byte_unset(&mut puc_bitmap[ui_byte_end as usize], 0, uc_bit_end_index);
+
+    if ui_byte_end_prev >= ui_byte_start_next {
+        puc_bitmap[ui_byte_start_next as usize..(ui_byte_start_next + ui_byte_seg_size) as usize].fill(0);
+    }
+
+    vos_ok!()
+}
+
+// [end]
+
+// [begin] bitmap_f_015
+
+pub fn vos_bit_map_array_test(puc_bitmap: &mut [u8], ui_bit_map_bit_size: u32, ui_index: u32, ui_array_size: u32) -> bool {
     let ui_byte_start = ui_index / vos_bitmap_byte_bits!();
     let ui_byte_start_next = ui_byte_start + 1;
     let ui_byte_end = (ui_index + ui_array_size - 1) / vos_bitmap_byte_bits!();
@@ -406,7 +589,7 @@ pub fn vos_bit_map_array_test(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui
     let uc_bit_start_index = (ui_index % vos_bitmap_byte_bits!()) as u8;
     let uc_bit_end_index = ((ui_index + ui_array_size - 1) % vos_bitmap_byte_bits!()) as u8;
 
-    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_index + ui_array_size > ui_bitmap_bit_size {
+    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_index + ui_array_size > ui_bit_map_bit_size {
         return false;
     }
 
@@ -428,6 +611,10 @@ pub fn vos_bit_map_array_test(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui
     true
 }
 
+// [end]
+
+// [begin] bitmap_f_016
+
 pub fn vos_check_enough_bits_in_one_byte(uc_byte: u8, ui_bit_size_need: u32, pui_start_idx: &mut u32) -> bool {
     let mut ui_start = 0;
     let mut b_flag = true;
@@ -445,6 +632,10 @@ pub fn vos_check_enough_bits_in_one_byte(uc_byte: u8, ui_bit_size_need: u32, pui
     b_flag
 }
 
+// [end]
+
+// [begin] bitmap_f_017
+
 pub fn vos_check_enough_bits_in_two_bytes(uc_first_byte: u8, uc_second_byte: u8, ui_bit_size_need: u32, pui_start_idx: &mut u32) -> bool {
     let ui_consecutive_zero_bits = vos_bit_map_byte_get_low_free(uc_first_byte);
     if vos_bit_map_byte_test(uc_second_byte, 0, (ui_bit_size_need - ui_consecutive_zero_bits - 1) as u8) {
@@ -454,8 +645,12 @@ pub fn vos_check_enough_bits_in_two_bytes(uc_first_byte: u8, uc_second_byte: u8,
     false
 }
 
-pub fn vos_bit_map_get_piece_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_array_size: u32, pui_index: &mut u32) -> u32 {
-    let ui_bit_map_byte_size = ((ui_bitmap_bit_size + vos_bitmap_byte_bits!() - 1) >> vos_bitmap_byte_shift_step!());
+// [end]
+
+// [begin] bitmap_f_018
+
+pub fn vos_bit_map_get_piece_free_array(puc_bitmap: &mut [u8], ui_bit_map_bit_size: u32, ui_array_size: u32, pui_index: &mut u32) -> u32 {
+    let ui_bit_map_byte_size = (ui_bit_map_bit_size + vos_bitmap_byte_bits!() - 1) >> vos_bitmap_byte_shift_step!();
     let ui_loop_butt = ui_bit_map_byte_size - 1;
     let mut ui_byte_loop: u32;
     let mut uc_byte_test;
@@ -479,13 +674,13 @@ pub fn vos_bit_map_get_piece_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_siz
         }
     }
 
-    if b_array_get && *pui_index + ui_array_size <= ui_bitmap_bit_size {
+    if b_array_get && *pui_index + ui_array_size <= ui_bit_map_bit_size {
         return vos_ok!();
     }
 
     if vos_check_enough_bits_in_one_byte(puc_bitmap[ui_bit_map_byte_size as usize - 1], ui_array_size, &mut ui_start_idx) {
         *pui_index = (ui_loop_butt << vos_bitmap_byte_shift_step!()) + ui_start_idx;
-        if *pui_index + ui_array_size <= ui_bitmap_bit_size {
+        if *pui_index + ui_array_size <= ui_bit_map_bit_size {
             return vos_ok!();
         }
     }
@@ -493,8 +688,12 @@ pub fn vos_bit_map_get_piece_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_siz
     vos_error_nodata!()
 }
 
-pub fn vos_bit_map_get_common_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_array_size: u32, pui_index: &mut u32) -> u32 {
-    let ui_bit_map_byte_size = (ui_bitmap_bit_size + vos_bitmap_byte_bits!() - 1) / vos_bitmap_byte_bits!();
+// [end]
+
+// [begin] bitmap_f_019
+
+pub fn vos_bit_map_get_common_free_array(puc_bitmap: &mut [u8], ui_bit_map_bit_size: u32, ui_array_size: u32, pui_index: &mut u32) -> u32 {
+    let ui_bit_map_byte_size = (ui_bit_map_bit_size + vos_bitmap_byte_bits!() - 1) / vos_bitmap_byte_bits!();
     let mut ui_zero_bits_tail;
     let mut ui_bytes;
     let mut ui_consecutive_zero_bits;
@@ -504,7 +703,7 @@ pub fn vos_bit_map_get_common_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_si
     for ui_byte_loop in 0..ui_bit_map_byte_size {
         uc_byte = puc_bitmap[ui_byte_loop as usize];
         ui_consecutive_zero_bits = vos_bit_map_byte_get_low_free(uc_byte);
-        if (ui_byte_loop + 1) * vos_bitmap_byte_bits!() - ui_consecutive_zero_bits + ui_array_size > ui_bitmap_bit_size {
+        if (ui_byte_loop + 1) * vos_bitmap_byte_bits!() - ui_consecutive_zero_bits + ui_array_size > ui_bit_map_bit_size {
             break;
         }
         if ui_consecutive_zero_bits == 0 {
@@ -529,14 +728,20 @@ pub fn vos_bit_map_get_common_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_si
     vos_error_nodata!()
 }
 
-pub fn vos_bit_map_get_free_array(puc_bitmap: &mut [u8], ui_bitmap_bit_size: u32, ui_array_size: u32, pui_index: &mut u32) -> u32 {
-    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_array_size > ui_bitmap_bit_size {
+// [end]
+
+// [begin] bitmap_f_020
+
+pub fn vos_bit_map_get_free_array(puc_bitmap: &mut [u8], ui_bit_map_bit_size: u32, ui_array_size: u32, pui_index: &mut u32) -> u32 {
+    if puc_bitmap.is_empty() || ui_array_size == 0 || ui_array_size > ui_bit_map_bit_size {
         return vos_error!();
     }
 
     if ui_array_size < vos_bitmap_byte_bits!() {
-        return vos_bit_map_get_piece_free_array(puc_bitmap, ui_bitmap_bit_size, ui_array_size, pui_index);
+        return vos_bit_map_get_piece_free_array(puc_bitmap, ui_bit_map_bit_size, ui_array_size, pui_index);
     } else {
-        return vos_bit_map_get_common_free_array(puc_bitmap, ui_bitmap_bit_size, ui_array_size, pui_index);
+        return vos_bit_map_get_common_free_array(puc_bitmap, ui_bit_map_bit_size, ui_array_size, pui_index);
     }
 }
+
+// [end]

@@ -360,31 +360,6 @@ mod tests {
         assert_eq!(ascii, "1.313");
     }
     
-    // pub fn vos_soft_fp_double_2_uint64(pst_v1: &mut Box<VosFpDoubleS>, pull_v2: &mut u64) -> u32 {
-    //     *pull_v2 = pst_v1.d_value as u64;
-    //     vos_ok!()
-    // }
-    
-    // pub fn vos_soft_fp_uint64_2_double(pull_v1: &mut u64, pst_v2: &mut Box<VosFpDoubleS>) -> u32 {
-    //     pst_v2.d_value = *pull_v1 as f64;
-    //     vos_ok!()
-    // }
-    
-    // pub fn vos_soft_fp_int64_2_double(psll_v1: &mut i64, pst_v2: &mut Box<VosFpDoubleS>) -> u32 {
-    //     pst_v2.d_value = *psll_v1 as f64;
-    //     vos_ok!()
-    // }
-    
-    // pub fn vos_soft_fp_double_2_int64(pst_v1: &mut Box<VosFpDoubleS>, psll_v2: &mut i64) -> u32 {
-    //     *psll_v2 = pst_v1.d_value as i64;
-    //     vos_ok!()
-    // }
-    
-    // pub fn vos_soft_fp_float_2_double(pst_v1: &mut Box<VosFpFloatS>, pst_v2: &mut Box<VosFpDoubleS>) -> u32 {
-    //     pst_v2.d_value = pst_v1.f_value as f64;
-    //     vos_ok!()
-    // }
-
     #[test]
     fn test_vos_soft_fp_convertion_2() {
         let mut vos_fp_double_s = Box::new(VosFpDoubleS::new(1.313));
